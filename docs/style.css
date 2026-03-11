@@ -598,6 +598,28 @@ footer ul li:last-child { border-bottom: none; }
   padding-top: 1.5rem;
 }
 
+/* ── HELIX EXPLANATION ───────────────────────────────────────────────────── */
+.helix-explanation {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  margin: 2.5rem 0;
+}
+.helix-col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+}
+.helix-col h3 {
+  color: var(--green);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-ui);
+}
+
 /* ── SCROLL REVEAL ───────────────────────────────────────────────────────── */
 .reveal {
   opacity: 0;

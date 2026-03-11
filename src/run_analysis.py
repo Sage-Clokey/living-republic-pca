@@ -39,6 +39,11 @@ from voting_pca import (
     plot_party_cluster_alignment,
     plot_silhouette,
     make_interactive_scatter,
+    # Congress — temporal spiral
+    plot_temporal_helix,
+    plot_party_strands,
+    plot_congress_colored,
+    plot_3d_helix,
     # Congress — Sagent / Spiral-and-Block themed
     plot_the_jar,
     plot_spiral_vs_block,
@@ -98,6 +103,13 @@ def run_congress_analysis() -> None:
     # Use the best natural k (prefer 4 or 5 if available, else 3)
     best_k = max(sil_scores, key=sil_scores.get)
     natural_labels = cluster_results[best_k]
+    # 7. Plots — temporal spiral (the DNA crystallography connection)
+    print("\nGenerating temporal spiral plots …")
+    plot_congress_colored(pca_coords, meta)
+    plot_party_strands(pca_coords, meta)
+    plot_temporal_helix(pca_coords, meta)
+    plot_3d_helix(pca_coords, meta)
+
     print(f"\nGenerating Sagent-themed thesis plots (best natural k={best_k}) …")
     plot_the_jar(pca_coords, meta, natural_labels)
     plot_spiral_vs_block(pca_coords, meta)

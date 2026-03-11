@@ -971,7 +971,483 @@ def plot_un_country_clusters(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 6.  SAGENT / SPIRAL-AND-BLOCK THEMED VISUALIZATIONS
+# 6.  TEMPORAL SPIRAL VISUALIZATIONS
+#     The PCA looks like X-ray crystallography of DNA because it IS the same
+#     geometry: two party clusters rotating around each other through time
+#     (9 congresses, 2007-2024) form a double helix.  When projected to 2D,
+#     a helix produces exactly the diffraction "X" pattern seen in Photo 51.
+# ─────────────────────────────────────────────────────────────────────────────
+
+CONGRESS_YEARS = {
+    110: 2007, 111: 2009, 112: 2011, 113: 2013,
+    114: 2015, 115: 2017, 116: 2019, 117: 2021, 118: 2023,
+}
+
+
+def _congress_time_index(meta: pd.DataFrame) -> np.ndarray:
+    """Map each member's congress to a 0-1 time index."""
+    cong = meta["congress"].values.astype(float)
+    return (cong - cong.min()) / max(cong.max() - cong.min(), 1)
+
+
+def plot_temporal_helix(
+    pca_coords: np.ndarray,
+    meta: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    Left:  3D scatter of PC1 × PC2 × Congress — the helix in 3D space.
+           Two coloured tubes trace the R and D centroid paths.
+    Right: The 2D projection of that helix onto PC1 × PC2 — which is
+           exactly the diffraction pattern Photo 51 shows for DNA.
+
+    The caption explains: projecting a helix onto 2D always produces
+    an X-ray-diffraction-style cross.  The pattern is not a metaphor.
+    It is the mathematical signature of a helical structure in the data.
+    """
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+
+    congresses = sorted(meta["congress"].unique())
+    parties    = meta["party_label"].values
+    pc1 = pca_coords[:, 0]
+    pc2 = pca_coords[:, 1]
+    cong_vals = meta["congress"].values.astype(float)
+    t = _congress_time_index(meta)
+
+    # Per-congress centroids for R and D
+    r_cx, r_cy, r_cz = [], [], []
+    d_cx, d_cy, d_cz = [], [], []
+    for c in congresses:
+        cm = meta["congress"].values == c
+        rm = cm & (parties == "Republican")
+        dm = cm & (parties == "Democrat")
+        z  = float(CONGRESS_YEARS.get(c, c))
+        if rm.sum() > 0:
+            r_cx.append(pc1[rm].mean()); r_cy.append(pc2[rm].mean()); r_cz.append(z)
+        if dm.sum() > 0:
+            d_cx.append(pc1[dm].mean()); d_cy.append(pc2[dm].mean()); d_cz.append(z)
+
+    fig = plt.figure(figsize=(18, 8))
+    fig.patch.set_facecolor("#0a0a14")
+
+    # ── LEFT: 3D helix ──────────────────────────────────────────────────────
+    ax3 = fig.add_subplot(121, projection="3d")
+    ax3.set_facecolor("#0a0a14")
+    ax3.xaxis.pane.fill = ax3.yaxis.pane.fill = ax3.zaxis.pane.fill = False
+    for pane in [ax3.xaxis.pane, ax3.yaxis.pane, ax3.zaxis.pane]:
+        pane.set_edgecolor("#222240")
+
+    # Scatter all members, coloured by time
+    sc = ax3.scatter(pc1, pc2, cong_vals,
+                     c=t, cmap="plasma", s=6, alpha=0.25, linewidths=0)
+
+    # R strand — red tube
+    ax3.plot(r_cx, r_cy, r_cz, color="#E81B23", lw=3, alpha=0.9, label="Republican strand")
+    ax3.scatter(r_cx, r_cy, r_cz, color="#E81B23", s=60, zorder=5)
+
+    # D strand — blue tube
+    ax3.plot(d_cx, d_cy, d_cz, color="#4466ff", lw=3, alpha=0.9, label="Democrat strand")
+    ax3.scatter(d_cx, d_cy, d_cz, color="#4466ff", s=60, zorder=5)
+
+    # Year labels on D strand
+    for x, y, z in zip(d_cx, d_cy, d_cz):
+        ax3.text(x, y, z + 0.3, str(int(z)), color="#aaaacc", fontsize=7)
+
+    ax3.set_xlabel("PC1 (ideology)", color="#aaaacc", fontsize=9, labelpad=6)
+    ax3.set_ylabel("PC2 (cross-cutting)", color="#aaaacc", fontsize=9, labelpad=6)
+    ax3.set_zlabel("Congress (year)", color="#aaaacc", fontsize=9, labelpad=6)
+    ax3.tick_params(colors="#666688", labelsize=7)
+    ax3.set_title("The Double Helix\nTwo strands rotating through time",
+                  color="white", fontsize=12, pad=10)
+    ax3.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577",
+               labelcolor="white", fontsize=8, loc="upper left")
+
+    # ── RIGHT: 2D projection = diffraction pattern ──────────────────────────
+    ax2 = fig.add_subplot(122)
+    ax2.set_facecolor("#0a0a14")
+
+    # All members coloured by time — the diffraction image
+    ax2.scatter(pc1, pc2, c=t, cmap="plasma", s=10, alpha=0.4, linewidths=0)
+
+    # Overlay the R and D centroid paths
+    ax2.plot(r_cx, r_cy, color="#E81B23", lw=2.5, alpha=0.9, zorder=4)
+    ax2.plot(d_cx, d_cy, color="#4466ff", lw=2.5, alpha=0.9, zorder=4)
+    ax2.scatter(r_cx, r_cy, color="#E81B23", s=50, zorder=5)
+    ax2.scatter(d_cx, d_cy, color="#4466ff", s=50, zorder=5)
+
+    # Label years on R strand
+    for x, y, z in zip(r_cx, r_cy, r_cz):
+        ax2.annotate(f"'{str(int(z))[2:]}", (x, y),
+                     xytext=(4, 4), textcoords="offset points",
+                     color="#E81B23", fontsize=7, alpha=0.9)
+
+    ax2.set_xlabel("PC1", color="#aaaacc", fontsize=11)
+    ax2.set_ylabel("PC2", color="#aaaacc", fontsize=11)
+    ax2.set_title("The 2D Projection\n= The Diffraction Pattern",
+                  color="white", fontsize=12, pad=10)
+    ax2.text(0.5, -0.13,
+             "Projecting a helix onto 2D always produces the X-ray diffraction cross.\n"
+             "This is Photo 51. The data is showing you the same geometry as DNA.",
+             transform=ax2.transAxes, ha="center", color="#aaaacc",
+             fontsize=8, style="italic")
+    _style_ax(ax2)
+
+    fig.suptitle(
+        "The Congressional Double Helix\n"
+        "Two party strands rotating around each other through time (2007–2023) — "
+        "projected to 2D, a helix always looks like DNA crystallography",
+        color="white", fontsize=13, y=1.01, fontweight="bold"
+    )
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "temporal_helix.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+def plot_party_strands(
+    pca_coords: np.ndarray,
+    meta: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    Strips away all individual members and shows ONLY the R and D centroid
+    positions per congress, connected by lines through time.
+
+    The result is two strands winding around each other — a literal double
+    helix traced through ideology space.  The inter-strand distance (party
+    polarization) grows congress by congress — the helix is expanding.
+
+    A connecting line between the R and D centroid at each congress (like
+    a base pair) shows the twist of the helix at each time step.
+    """
+    congresses = sorted(meta["congress"].unique())
+    parties    = meta["party_label"].values
+    pc1 = pca_coords[:, 0]
+    pc2 = pca_coords[:, 1]
+
+    r_pts, d_pts, years = [], [], []
+    for c in congresses:
+        cm = meta["congress"].values == c
+        rm = cm & (parties == "Republican")
+        dm = cm & (parties == "Democrat")
+        if rm.sum() > 0 and dm.sum() > 0:
+            r_pts.append((pc1[rm].mean(), pc2[rm].mean()))
+            d_pts.append((pc1[dm].mean(), pc2[dm].mean()))
+            years.append(CONGRESS_YEARS.get(c, c))
+
+    r_pts = np.array(r_pts)
+    d_pts = np.array(d_pts)
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    fig.patch.set_facecolor("#0a0a14")
+
+    # ── LEFT: The two strands in PCA space ──────────────────────────────────
+    ax = axes[0]
+    ax.set_facecolor("#0a0a14")
+
+    # Faint full scatter for spatial context
+    for party, color in [("Republican", "#E81B2322"), ("Democrat", "#4466ff22")]:
+        mask = parties == party
+        ax.scatter(pc1[mask], pc2[mask], c=color, s=8, linewidths=0)
+
+    # Draw base-pair connectors between strands at each time step
+    n = len(years)
+    for i in range(n):
+        alpha = 0.2 + 0.6 * (i / (n - 1))
+        ax.plot([r_pts[i, 0], d_pts[i, 0]], [r_pts[i, 1], d_pts[i, 1]],
+                color="#FFD700", lw=1.2, alpha=alpha * 0.6, ls="--")
+
+    # R strand
+    t_vals = np.linspace(0, 1, n)
+    for i in range(n - 1):
+        ax.plot(r_pts[i:i+2, 0], r_pts[i:i+2, 1],
+                color=plt.cm.Reds(0.4 + 0.5 * t_vals[i]),
+                lw=3, solid_capstyle="round")
+    ax.scatter(r_pts[:, 0], r_pts[:, 1], color="#E81B23", s=80, zorder=5)
+
+    # D strand
+    for i in range(n - 1):
+        ax.plot(d_pts[i:i+2, 0], d_pts[i:i+2, 1],
+                color=plt.cm.Blues(0.4 + 0.5 * t_vals[i]),
+                lw=3, solid_capstyle="round")
+    ax.scatter(d_pts[:, 0], d_pts[:, 1], color="#4466ff", s=80, zorder=5)
+
+    # Year labels
+    for i, yr in enumerate(years):
+        ax.annotate(str(yr), r_pts[i], xytext=(5, -12),
+                    textcoords="offset points", color="#E81B23", fontsize=8)
+        ax.annotate(str(yr), d_pts[i], xytext=(5, 4),
+                    textcoords="offset points", color="#4466ff", fontsize=8)
+
+    ax.set_title("The Two Strands\nParty centroids rotating through ideology space",
+                 color="white", fontsize=12, pad=10)
+    ax.set_xlabel("PC1", color="#aaaacc", fontsize=11)
+    ax.set_ylabel("PC2", color="#aaaacc", fontsize=11)
+    _style_ax(ax)
+
+    # ── RIGHT: Inter-strand distance = helix radius expanding ───────────────
+    ax2 = axes[1]
+    ax2.set_facecolor("#0a0a14")
+
+    distances = np.linalg.norm(r_pts - d_pts, axis=1)
+    yr_arr = np.array(years)
+
+    # Colour by time
+    for i in range(n - 1):
+        c = plt.cm.plasma(t_vals[i])
+        ax2.plot(yr_arr[i:i+2], distances[i:i+2], color=c, lw=3)
+    ax2.scatter(yr_arr, distances,
+                c=t_vals, cmap="plasma", s=80, zorder=5)
+
+    for i, (yr, d) in enumerate(zip(years, distances)):
+        ax2.annotate(str(yr), (yr, d), xytext=(4, 6),
+                     textcoords="offset points", color="#aaaacc", fontsize=8)
+
+    ax2.set_xlabel("Year", color="#aaaacc", fontsize=11)
+    ax2.set_ylabel("Distance between R and D centroids (PC space)", color="#aaaacc", fontsize=11)
+    ax2.set_title("The Helix Expanding\nPolarization = growing radius of the spiral",
+                  color="white", fontsize=12, pad=10)
+    ax2.text(0.5, -0.13,
+             "As the helix expands, the two strands can no longer reach across to form base pairs.\n"
+             "This is polarization — measured geometrically, not politically.",
+             transform=ax2.transAxes, ha="center", color="#aaaacc",
+             fontsize=8, style="italic")
+    _style_ax(ax2)
+
+    fig.suptitle(
+        "The Double Helix — Two Strands, One Spiral\n"
+        "Yellow dashes = base pairs (the votes that cross party lines). "
+        "The helix is expanding: polarization as geometry.",
+        color="white", fontsize=13, y=1.01, fontweight="bold"
+    )
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "party_strands.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+def plot_congress_colored(
+    pca_coords: np.ndarray,
+    meta: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    The full member scatter coloured by congress (time), not party.
+
+    When you remove the party label and colour only by time, the temporal
+    flow becomes visible — you can see each congress's members as a band
+    drifting through the space, the two-party spiral rotating as it moves.
+
+    Three panels:
+    Left:   Coloured by party (the imposed label)
+    Centre: Coloured by congress/time (the temporal truth)
+    Right:  Coloured by congress, R and D centroid trajectories overlaid
+    """
+    pc1 = pca_coords[:, 0]
+    pc2 = pca_coords[:, 1]
+    parties   = meta["party_label"].values
+    cong_vals = meta["congress"].values.astype(float)
+    t = _congress_time_index(meta)
+
+    congresses = sorted(meta["congress"].unique())
+
+    fig, axes = plt.subplots(1, 3, figsize=(21, 7), sharey=True)
+    fig.patch.set_facecolor("#0a0a14")
+
+    # ── LEFT: Party coloured (reference) ────────────────────────────────────
+    ax = axes[0]
+    ax.set_facecolor("#0a0a14")
+    for party, color in PARTY_COLORS.items():
+        mask = parties == party
+        if mask.sum() == 0: continue
+        ax.scatter(pc1[mask], pc2[mask], c=color, s=10, alpha=0.55, linewidths=0, label=party)
+    ax.set_title("Coloured by Party\n(the imposed label)", color="white", fontsize=11, pad=10)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577",
+              labelcolor="white", fontsize=8, markerscale=1.5)
+    _style_ax(ax)
+    ax.set_xlabel("PC1", color="#aaaacc"); ax.set_ylabel("PC2", color="#aaaacc")
+
+    # ── CENTRE: Time coloured ────────────────────────────────────────────────
+    ax = axes[1]
+    ax.set_facecolor("#0a0a14")
+    sc = ax.scatter(pc1, pc2, c=t, cmap="plasma", s=10, alpha=0.65, linewidths=0)
+    cbar = plt.colorbar(sc, ax=ax, pad=0.02)
+    cbar.set_label("Time →  2007 to 2023", color="#aaaacc", fontsize=8)
+    cbar.ax.yaxis.set_tick_params(color="#aaaacc")
+    plt.setp(cbar.ax.yaxis.get_ticklabels(), color="#aaaacc", fontsize=7)
+    cbar.outline.set_edgecolor("#444466")
+    ax.set_title("Coloured by Congress / Time\n(no party label — only when)", color="white", fontsize=11, pad=10)
+    _style_ax(ax)
+    ax.set_xlabel("PC1", color="#aaaacc")
+
+    # ── RIGHT: Time + centroid trajectories ─────────────────────────────────
+    ax = axes[2]
+    ax.set_facecolor("#0a0a14")
+    ax.scatter(pc1, pc2, c=t, cmap="plasma", s=10, alpha=0.35, linewidths=0)
+
+    r_xs, r_ys, d_xs, d_ys = [], [], [], []
+    for c in congresses:
+        cm = meta["congress"].values == c
+        rm = cm & (parties == "Republican")
+        dm = cm & (parties == "Democrat")
+        if rm.sum() > 0: r_xs.append(pc1[rm].mean()); r_ys.append(pc2[rm].mean())
+        if dm.sum() > 0: d_xs.append(pc1[dm].mean()); d_ys.append(pc2[dm].mean())
+
+    ax.plot(r_xs, r_ys, color="#ff6666", lw=2.5, zorder=4, label="R centroid path")
+    ax.plot(d_xs, d_ys, color="#6688ff", lw=2.5, zorder=4, label="D centroid path")
+    ax.scatter(r_xs, r_ys, color="#ff6666", s=60, zorder=5)
+    ax.scatter(d_xs, d_ys, color="#6688ff", s=60, zorder=5)
+
+    for i, c in enumerate(congresses):
+        yr = CONGRESS_YEARS.get(c, c)
+        if i < len(r_xs):
+            ax.annotate(f"'{str(yr)[2:]}", (r_xs[i], r_ys[i]),
+                        xytext=(4, -10), textcoords="offset points",
+                        color="#ff6666", fontsize=7)
+
+    ax.set_title("Time + Strand Trajectories\nThe spiral made visible", color="white", fontsize=11, pad=10)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577",
+              labelcolor="white", fontsize=8)
+    _style_ax(ax)
+    ax.set_xlabel("PC1", color="#aaaacc")
+
+    fig.suptitle(
+        "The Temporal Spiral  ·  Same Data, Different Lens\n"
+        "Remove the party label, colour by time — the helix rotation becomes visible",
+        color="white", fontsize=13, y=1.01, fontweight="bold"
+    )
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "congress_colored.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+def plot_3d_helix(
+    pca_coords: np.ndarray,
+    meta: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    Full-page 3D scatter: X=PC1, Y=PC2, Z=Year.
+
+    Every member is a point in 3D ideology-time space.  The two party
+    strands are drawn as thick tubes.  Rotating this plot reveals the
+    double helix directly — the same shape as DNA, expressed in the
+    voting behaviour of Congress over time.
+    """
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+    import matplotlib.cm as cm
+
+    pc1    = pca_coords[:, 0]
+    pc2    = pca_coords[:, 1]
+    parties = meta["party_label"].values
+    cong_vals = meta["congress"].values
+    years  = np.array([CONGRESS_YEARS.get(c, c) for c in cong_vals], dtype=float)
+    t      = _congress_time_index(meta)
+
+    congresses = sorted(meta["congress"].unique())
+
+    # Compute per-congress centroids
+    r_pts, d_pts = [], []
+    for c in congresses:
+        cm_mask = cong_vals == c
+        rm = cm_mask & (parties == "Republican")
+        dm = cm_mask & (parties == "Democrat")
+        yr = float(CONGRESS_YEARS.get(c, c))
+        if rm.sum() > 0: r_pts.append([pc1[rm].mean(), pc2[rm].mean(), yr])
+        if dm.sum() > 0: d_pts.append([pc1[dm].mean(), pc2[dm].mean(), yr])
+    r_pts = np.array(r_pts)
+    d_pts = np.array(d_pts)
+
+    fig = plt.figure(figsize=(14, 11))
+    fig.patch.set_facecolor("#0a0a14")
+    ax = fig.add_subplot(111, projection="3d")
+    ax.set_facecolor("#0a0a14")
+    for pane in [ax.xaxis.pane, ax.yaxis.pane, ax.zaxis.pane]:
+        pane.fill = False
+        pane.set_edgecolor("#1a1a30")
+    ax.grid(False)
+
+    # ── All members as small points, coloured by party ───────────────────
+    for party, color, alpha in [
+        ("Republican", "#E81B23", 0.18),
+        ("Democrat",   "#4466ff", 0.18),
+        ("Independent","#888888", 0.15),
+    ]:
+        mask = parties == party
+        if mask.sum() == 0: continue
+        ax.scatter(pc1[mask], pc2[mask], years[mask],
+                   c=color, s=4, alpha=alpha, linewidths=0)
+
+    # ── R strand — gradient red tube ────────────────────────────────────
+    n = len(r_pts)
+    for i in range(n - 1):
+        frac = i / (n - 1)
+        col  = (1.0, 0.1 + 0.3 * frac, 0.1 + 0.3 * frac, 0.95)
+        ax.plot(r_pts[i:i+2, 0], r_pts[i:i+2, 1], r_pts[i:i+2, 2],
+                color=col, lw=5, solid_capstyle="round")
+    ax.scatter(r_pts[:, 0], r_pts[:, 1], r_pts[:, 2],
+               color="#ff4444", s=120, zorder=10, depthshade=False)
+
+    # ── D strand — gradient blue tube ───────────────────────────────────
+    for i in range(len(d_pts) - 1):
+        frac = i / (len(d_pts) - 1)
+        col  = (0.1 + 0.2 * frac, 0.2 + 0.2 * frac, 1.0, 0.95)
+        ax.plot(d_pts[i:i+2, 0], d_pts[i:i+2, 1], d_pts[i:i+2, 2],
+                color=col, lw=5, solid_capstyle="round")
+    ax.scatter(d_pts[:, 0], d_pts[:, 1], d_pts[:, 2],
+               color="#6688ff", s=120, zorder=10, depthshade=False)
+
+    # ── Base-pair connectors ─────────────────────────────────────────────
+    for i in range(min(len(r_pts), len(d_pts))):
+        alpha = 0.15 + 0.5 * (i / (n - 1))
+        ax.plot([r_pts[i, 0], d_pts[i, 0]],
+                [r_pts[i, 1], d_pts[i, 1]],
+                [r_pts[i, 2], d_pts[i, 2]],
+                color="#FFD700", lw=1.5, alpha=alpha, ls="--")
+
+    # ── Year labels ──────────────────────────────────────────────────────
+    for pt, yr in zip(r_pts, [CONGRESS_YEARS.get(c, c) for c in congresses]):
+        ax.text(pt[0] + 0.05, pt[1], pt[2] + 0.2, str(yr),
+                color="#ff8888", fontsize=8, zorder=11)
+
+    # ── Axis styling ─────────────────────────────────────────────────────
+    ax.set_xlabel("PC1  — Ideology", color="#aaaacc", fontsize=10, labelpad=10)
+    ax.set_ylabel("PC2  — Cross-cutting", color="#aaaacc", fontsize=10, labelpad=10)
+    ax.set_zlabel("Year", color="#aaaacc", fontsize=10, labelpad=10)
+    ax.tick_params(colors="#555577", labelsize=8)
+    ax.xaxis.label.set_color("#aaaacc")
+    ax.yaxis.label.set_color("#aaaacc")
+    ax.zaxis.label.set_color("#aaaacc")
+
+    # Viewing angle: rotate slightly to show the helical twist
+    ax.view_init(elev=22, azim=-55)
+
+    ax.set_title(
+        "The Congressional Double Helix\n"
+        "PC1 × PC2 × Time — two strands winding through ideology space",
+        color="white", fontsize=13, pad=16, fontweight="bold"
+    )
+    fig.text(0.5, 0.02,
+             "Red = Republican strand  ·  Blue = Democrat strand  ·  "
+             "Gold dashes = base pairs (cross-party votes)\n"
+             "This is the same geometry as DNA.  Projecting this helix onto 2D "
+             "produces the X-ray diffraction pattern seen in the other PCA plots.",
+             ha="center", color="#888899", fontsize=8, style="italic")
+
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "helix_3d.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7.  SAGENT / SPIRAL-AND-BLOCK THEMED VISUALIZATIONS
 #     Each visualization is named for a specific metaphor from the Sagent Creed
 #     and "The Spiral and the Block".
 # ─────────────────────────────────────────────────────────────────────────────

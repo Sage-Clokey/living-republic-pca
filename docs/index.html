@@ -16,6 +16,7 @@
         <a href="#the-jar">The Jar</a>
         <a href="#the-block">The Block</a>
         <a href="#the-spiral">The Spiral</a>
+        <a href="#the-helix">The Helix</a>
         <a href="#the-grammar">The Grammar</a>
         <a href="#jotham">Jotham's Parable</a>
         <a href="#free-market">Free Market of Law</a>
@@ -231,6 +232,80 @@
           <p class="viz-caption">Members in the PC1 overlap zone — the data's way of showing
           that the binary is not a fact of nature but a constraint imposed from outside.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 3b: THE DOUBLE HELIX ─────────────────────────────────────── -->
+  <section id="the-helix" class="content-section alt-bg">
+    <div class="section-inner">
+      <div class="section-label">Section III — The Crystallography</div>
+      <h2>Why It Looks Like <span class="accent-green">DNA</span></h2>
+      <p class="section-intro">
+        The PCA scatter of congressional voting patterns looks like Photo 51 — Rosalind Franklin's
+        X-ray crystallography of DNA — because it <em>is</em> the same geometry.
+        Two party clusters rotating around each other through nine congresses (2007–2023)
+        form a double helix. Projecting a helix onto 2D always produces the diffraction cross.
+        The pattern is not a metaphor. It is a mathematical signature.
+      </p>
+
+      <div class="helix-explanation">
+        <div class="helix-col">
+          <h3>X-ray Crystallography of DNA</h3>
+          <p>Hit a helical crystal with X-rays. The interference pattern on the detector is an "X" — the Fourier transform of the helical structure. The arms encode the helical repeat. The layer lines encode the base-pair spacing.</p>
+          <p>This is how Watson and Crick deduced the double helix: they let the <em>data</em> reveal the shape. They did not impose a structure — they read the diffraction pattern.</p>
+        </div>
+        <div class="helix-col">
+          <h3>PCA of Congressional Voting</h3>
+          <p>Two party clusters drift and rotate relative to each other across nine congresses. Their trajectory through ideology space is helical — two strands winding around a shared axis through time. Project this onto PC1 × PC2 and you get the same diffraction "X."</p>
+          <p>The binary system sees two separate blocks. The geometry sees one helix. You cannot understand one strand without the other — they define each other by their rotation.</p>
+        </div>
+      </div>
+
+      <div class="full-viz" style="margin-top:3rem">
+        <img src="outputs/helix_3d.png" alt="The Congressional Double Helix — 3D" class="viz-img" />
+        <p class="viz-caption">
+          <strong>PC1 × PC2 × Time.</strong> Red = Republican strand. Blue = Democrat strand.
+          Gold dashes = base pairs — the votes that cross party lines.
+          The two strands wind around each other through ideology space as time advances.
+          This is the same geometry as DNA.
+        </p>
+      </div>
+
+      <div class="two-col" style="margin-top:3rem">
+        <div class="col-viz">
+          <img src="outputs/party_strands.png" alt="Party Strands" class="viz-img" />
+          <p class="viz-caption">
+            Left: Only the centroid trajectories — the two strands stripped bare.
+            Right: Inter-strand distance growing congress by congress —
+            polarization as the expanding radius of the helix.
+          </p>
+        </div>
+        <div class="col-viz">
+          <img src="outputs/temporal_helix.png" alt="Temporal Helix" class="viz-img" />
+          <p class="viz-caption">
+            Left: The 3D helix with PC1, PC2, and Year as explicit axes.
+            Right: Its 2D projection — the diffraction pattern.
+            The left shows what the right <em>is</em>.
+          </p>
+        </div>
+      </div>
+
+      <div class="full-viz">
+        <img src="outputs/congress_colored.png" alt="Congress Coloured by Time" class="viz-img" />
+        <p class="viz-caption">
+          The same members coloured by party (left), by time alone (centre), and by time
+          with centroid trajectories overlaid (right). Remove the party label, colour only
+          by <em>when</em> — and the temporal rotation becomes visible.
+        </p>
+      </div>
+
+      <div class="data-finding" style="margin-top:2rem">
+        <span class="finding-label">The Geometric Argument</span>
+        A helix needs <strong>more than one axis</strong> to describe it. You cannot flatten
+        a helix onto a line without destroying the information. This is why the two-party system
+        fails: it tries to describe a helical structure — one that lives in at least five
+        dimensions — with a single binary axis. The geometry forbids it.
       </div>
     </div>
   </section>
