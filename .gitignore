@@ -1,5 +1,8 @@
-data/
+# Raw full-history votes file (648 MB) — use HSall_votes_110_118.csv.gz instead
+data/HSall_votes.csv
+data/HSall_votes_110_118.csv
 outputs/
+!docs/outputs/
 notebooks/.ipynb_checkpoints/
 src/__pycache__/
 __pycache__/

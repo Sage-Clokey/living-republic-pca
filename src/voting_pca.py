@@ -86,8 +86,19 @@ def load_congress_data(
     print(f"Loading Voteview data for {chamber}, congresses {lo}–{hi} …")
 
     members = pd.read_csv(DATA_DIR / "HSall_members.csv", low_memory=False)
-    votes   = pd.read_csv(DATA_DIR / "HSall_votes.csv",   low_memory=False)
     rc      = pd.read_csv(DATA_DIR / "HSall_rollcalls.csv", low_memory=False)
+
+    # Prefer the pre-filtered compressed file (committed to git) over the
+    # full 648 MB raw download.
+    filtered_gz  = DATA_DIR / "HSall_votes_110_118.csv.gz"
+    filtered_csv = DATA_DIR / "HSall_votes_110_118.csv"
+    full_csv     = DATA_DIR / "HSall_votes.csv"
+    if filtered_gz.exists():
+        votes = pd.read_csv(filtered_gz, low_memory=False)
+    elif filtered_csv.exists():
+        votes = pd.read_csv(filtered_csv, low_memory=False)
+    else:
+        votes = pd.read_csv(full_csv, low_memory=False)
 
     # Filter to specified chamber and congress range
     members = members[
