@@ -2064,11 +2064,25 @@ def plot_per_congress_pca(
         pc1 = coords_aligned[:, 0]
         pc2 = coords_aligned[:, 1]
 
-        # ── Unsupervised k-means clustering (k=2, NO party info used) ─────────
-        km = KMeans(n_clusters=2, n_init=20, random_state=42)
-        cluster_ids = km.fit_predict(coords_aligned)
+        # ── Optimal k via silhouette (NO party info used anywhere) ───────────
+        best_k, best_sil, best_km, best_ids = 2, -1, None, None
+        for k in range(2, 7):
+            if coords_aligned.shape[0] < k * 5:
+                break
+            km_try = KMeans(n_clusters=k, n_init=20, random_state=42)
+            ids_try = km_try.fit_predict(coords_aligned)
+            sil = silhouette_score(coords_aligned, ids_try)
+            if sil > best_sil:
+                best_k, best_sil, best_km, best_ids = k, sil, km_try, ids_try
 
-        # Background mesh coloring for cluster regions
+        km = best_km
+        cluster_ids = best_ids
+
+        # Neutral cluster palette (not red/blue — avoid party connotation)
+        CLUSTER_COLORS = ["#00ffaa", "#FFD700", "#ff6eb4", "#7ec8e3", "#ffaa44", "#cc99ff"]
+        cluster_fill   = ["#0a1f18", "#1f1a08", "#1f0a14", "#081a1f", "#1f1208", "#140a1f"]
+
+        # Background mesh — one shade per cluster
         x_min, x_max = pc1.min() - 0.5, pc1.max() + 0.5
         y_min, y_max = pc2.min() - 0.5, pc2.max() + 0.5
         xx, yy = np.meshgrid(
@@ -2076,69 +2090,55 @@ def plot_per_congress_pca(
             np.linspace(y_min, y_max, 220),
         )
         Z = km.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
-        # Neutral cluster region colors — amber vs teal, low alpha
-        region_colors = np.where(Z == 0, 0.0, 1.0)
-        ax.contourf(xx, yy, region_colors, levels=1,
-                    colors=["#1a2a3a", "#2a1a1a"], alpha=0.55, zorder=1)
-        ax.contour(xx, yy, region_colors, levels=1,
-                   colors=["#00ffaa"], linewidths=0.7, alpha=0.6, zorder=2)
+        ax.contourf(xx, yy, Z.astype(float),
+                    levels=np.arange(-0.5, best_k + 0.5, 1),
+                    colors=cluster_fill[:best_k], alpha=0.70, zorder=1)
+        ax.contour(xx, yy, Z.astype(float),
+                   levels=np.arange(0.5, best_k - 0.5, 1),
+                   colors=[CLUSTER_COLORS[0]], linewidths=0.8, alpha=0.7, zorder=2)
 
-        # K-means centroids (white X)
+        # Cluster centroid markers (white ✕)
         for cid, cx_c in enumerate(km.cluster_centers_):
-            ax.scatter([cx_c[0]], [cx_c[1]], c="white", s=80, marker="x",
-                       linewidths=1.5, zorder=7, alpha=0.9)
+            ax.scatter([cx_c[0]], [cx_c[1]], c=CLUSTER_COLORS[cid % len(CLUSTER_COLORS)],
+                       s=90, marker="x", linewidths=2.0, zorder=7, alpha=0.95)
 
-        # ── Scatter points colored by PARTY (not cluster) ─────────────────────
-        for party, color in [("Republican","#E81B23"), ("Democrat","#4466ff"), ("Other","#888888")]:
+        # ── Points colored by PARTY (not cluster) ─────────────────────────────
+        for party, color in [("Republican","#E81B23"), ("Democrat","#4466ff"), ("Other","#aaaaaa")]:
             mask = parties == party
             if mask.sum() == 0: continue
-            ax.scatter(pc1[mask], pc2[mask], c=color, s=12, alpha=0.70,
+            ax.scatter(pc1[mask], pc2[mask], c=color, s=14, alpha=0.80,
                        linewidths=0, zorder=3)
 
-        # Party centroid diamonds
-        rx = ry = dx = dy = None
-        if (parties == "Republican").sum() > 0:
-            rx, ry = pc1[parties=="Republican"].mean(), pc2[parties=="Republican"].mean()
-            ax.scatter([rx], [ry], c="#ff4444", s=120, marker="D", zorder=6,
-                       edgecolors="white", linewidths=0.8)
-            r_centroids.append((rx, ry))
-        if (parties == "Democrat").sum() > 0:
-            dx, dy = pc1[parties=="Democrat"].mean(), pc2[parties=="Democrat"].mean()
-            ax.scatter([dx], [dy], c="#6688ff", s=120, marker="D", zorder=6,
-                       edgecolors="white", linewidths=0.8)
-            d_centroids.append((dx, dy))
-
-        # Party centroid gap annotation
-        if rx is not None and dx is not None:
-            gap = np.sqrt((rx-dx)**2 + (ry-dy)**2)
-            ax.plot([rx, dx], [ry, dy], color="#FFD700", lw=1.2, ls="--", alpha=0.6, zorder=5)
-            mid_x, mid_y = (rx+dx)/2, (ry+dy)/2
-            ax.text(mid_x, mid_y, f"gap={gap:.1f}", ha="center", color="#FFD700",
-                    fontsize=7, style="italic")
-
-        # Alignment stat: what fraction of the majority party ended up in one cluster?
-        if len(np.unique(parties)) > 1:
-            # find which cluster is more Republican
-            r_mask = parties == "Republican"
-            if r_mask.sum() > 0:
-                r_cluster = np.bincount(cluster_ids[r_mask]).argmax()
-                r_in_r = (cluster_ids[r_mask] == r_cluster).mean() * 100
-                d_in_d = (cluster_ids[parties=="Democrat"] != r_cluster).mean() * 100 if (parties=="Democrat").sum() > 0 else 0
-                align = (r_in_r + d_in_d) / 2
-                ax.text(0.98, 0.04, f"cluster-party align {align:.0f}%",
+        # ── Count crossover members (in wrong cluster relative to their party) ─
+        # Determine which cluster is the "R-dominant" cluster
+        r_mask = parties == "Republican"
+        d_mask = parties == "Democrat"
+        crossover_pct = None
+        if r_mask.sum() > 0 and d_mask.sum() > 0:
+            # Find the cluster with the highest R fraction
+            r_cluster = max(range(best_k),
+                            key=lambda cid: (cluster_ids[r_mask] == cid).sum())
+            d_cluster = max(range(best_k),
+                            key=lambda cid: (cluster_ids[d_mask] == cid).sum())
+            if r_cluster != d_cluster:
+                r_cross = (cluster_ids[r_mask] != r_cluster).sum()
+                d_cross = (cluster_ids[d_mask] != d_cluster).sum()
+                total   = r_mask.sum() + d_mask.sum()
+                crossover_pct = (r_cross + d_cross) / total * 100
+                ax.text(0.98, 0.04,
+                        f"{crossover_pct:.0f}% cross party–cluster boundary",
                         transform=ax.transAxes, ha="right", color="#00ffaa",
-                        fontsize=7, alpha=0.85)
+                        fontsize=7, alpha=0.9)
 
         yr    = CONGRESS_YEARS[c]
         maj   = MAJORITY_PARTY[c]
         maj_c = "#E81B23" if maj=="Republican" else "#4466ff"
-        n_r   = (parties=="Republican").sum()
-        n_d   = (parties=="Democrat").sum()
+        n_r   = r_mask.sum() if r_mask is not None else 0
+        n_d   = d_mask.sum() if d_mask is not None else 0
 
         ax.set_title(
             f"{c}th Congress  ({yr}–{yr+2})\n"
-            f"PC1={var1:.1f}%  PC2={var2:.1f}%   "
-            f"R={n_r} D={n_d}",
+            f"PC1={var1:.1f}%  PC2={var2:.1f}%  k={best_k} (sil={best_sil:.2f})",
             color="white", fontsize=10, pad=6
         )
         ax.text(0.02, 0.96, f"Majority: {maj}", transform=ax.transAxes,
@@ -2149,9 +2149,9 @@ def plot_per_congress_pca(
 
     fig.suptitle(
         "Individual PCA — Each Congress Independently  (110th–118th House)\n"
-        "Background regions = unsupervised k-means clusters (k=2, no party info). "
-        "Point color = party affiliation (red=R, blue=D). ✕ = cluster centroid. "
-        "Diamond = party centroid. % = how well clusters align with party.",
+        "Background regions = unsupervised clusters (optimal k, silhouette-selected, zero party info used). "
+        "Point color = party affiliation (red=R, blue=D). "
+        "% in corner = members whose party label crosses a cluster boundary.",
         color="white", fontsize=13, y=1.01, fontweight="bold"
     )
     plt.tight_layout()
