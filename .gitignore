@@ -1,0 +1,7 @@
+data/
+outputs/
+notebooks/.ipynb_checkpoints/
+src/__pycache__/
+__pycache__/
+*.pyc
+.DS_Store

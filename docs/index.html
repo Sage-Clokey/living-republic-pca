@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Living Republic — Spiral vs. Block</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── NAVIGATION ─────────────────────────────────────────────────────── -->
+  <nav id="nav">
+    <div class="nav-inner">
+      <span class="nav-logo">⬡ The Living Republic</span>
+      <div class="nav-links">
+        <a href="#the-jar">The Jar</a>
+        <a href="#the-block">The Block</a>
+        <a href="#the-spiral">The Spiral</a>
+        <a href="#the-grammar">The Grammar</a>
+        <a href="#jotham">Jotham's Parable</a>
+        <a href="#free-market">Free Market of Law</a>
+        <a href="#explorer">Data Explorer</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO ───────────────────────────────────────────────────────────── -->
+  <section id="hero">
+    <div class="spiral-bg" aria-hidden="true"></div>
+    <div class="hero-content">
+      <div class="hero-eyebrow">Unsupervised Learning · Congress · United Nations · Political Philosophy</div>
+      <h1>The <span class="accent-green">Living</span> Republic</h1>
+      <p class="hero-sub">
+        Two parties. One axis. A jar being shaken.<br>
+        The data tells a different story.
+      </p>
+      <p class="hero-body">
+        What happens when you remove the labels — Republican, Democrat, East, West —
+        and let the votes speak for themselves? Principal Component Analysis and unsupervised
+        clustering reveal a continuous, multi-dimensional space of human political belief
+        that no binary can contain. This is the argument for a republic as a
+        <em>living system</em>: emergent, decentralized, sovereign in every part.
+      </p>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-num">1,091</span>
+          <span class="stat-label">Members of Congress analyzed</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">12,028</span>
+          <span class="stat-label">Roll call votes</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">199</span>
+          <span class="stat-label">UN member nations</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num accent-gold">0.335</span>
+          <span class="stat-label">Silhouette score for k=2 (lowest of all k tested)</span>
+        </div>
+      </div>
+      <a href="#the-jar" class="cta-btn">Begin the Argument ↓</a>
+    </div>
+  </section>
+
+  <!-- ── THESIS BANNER ──────────────────────────────────────────────────── -->
+  <div class="thesis-banner">
+    <blockquote>
+      "The second way does not begin with a blueprint. It begins with listening — to soil, to water,
+      to wind, to roots, to the quiet and distributed intelligence of living systems. It does not ask
+      <em>what shall we force this place to become</em>, but rather <em>what wants to grow here</em>.
+      This is the way of the Spiral."
+    </blockquote>
+    <cite>— The Spiral Steward: Life-Based Design, Sacred Freedom, and the End of the Engineer</cite>
+  </div>
+
+  <!-- ── SECTION 1: THE JAR ──────────────────────────────────────────────── -->
+  <section id="the-jar" class="content-section">
+    <div class="section-inner">
+      <div class="section-label">Section I</div>
+      <h2>The <span class="accent-red">Jar</span></h2>
+      <div class="two-col">
+        <div class="col-text">
+          <p class="lead">
+            Picture a jar containing one hundred red ants and one hundred black ants.
+          </p>
+          <p>
+            The jar is shaken by an unseen hand, and in the chaos, the red ants look at
+            the black ants and see the enemy. The black ants look at the red ants and see
+            the enemy. Both colonies rise to fight. Both colonies bleed.
+          </p>
+          <p>
+            The one who shook the jar watches from outside, and smiles — because conflict
+            is the machine by which hidden power perpetuates itself.
+          </p>
+          <p class="emphasis-block">
+            The ants never ask the most dangerous question: <strong>Who is shaking the jar? And why?</strong>
+          </p>
+          <p>
+            The two-party system is the jar. Republican vs. Democrat is the shaking. The
+            data below shows what happens when you let the jar settle — when you remove the
+            imposed labels and ask the votes themselves what structure they contain.
+          </p>
+          <div class="data-finding">
+            <span class="finding-label">Data Finding</span>
+            The silhouette score for k=2 (the binary) is <strong>0.335</strong> —
+            the lowest score of every clustering depth tested (2 through 10).
+            The data never naturally prefers the two-party split.
+          </div>
+        </div>
+        <div class="col-viz">
+          <img src="outputs/the_jar.png" alt="The Jar: Shaken vs Settled" class="viz-img" />
+          <p class="viz-caption">
+            Left: Congress members colored by party label — the jar shaken.
+            Right: The same members colored by what naturally emerges from unsupervised learning — the jar settled.
+            Same data. Different truth.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 2: THE BLOCK ──────────────────────────────────────────── -->
+  <section id="the-block" class="content-section alt-bg">
+    <div class="section-inner">
+      <div class="section-label">Section II</div>
+      <h2>The <span class="accent-red">Block</span></h2>
+      <div class="two-col reverse">
+        <div class="col-viz">
+          <img src="outputs/spiral_vs_block.png" alt="The Spiral vs the Block" class="viz-img" />
+          <p class="viz-caption">
+            Left: The block — hard rectangular party boundaries drawn over the data.
+            Six faces. Will never have a seventh.
+            Right: The spiral — the living path through ideology space, traced by the data itself.
+          </p>
+        </div>
+        <div class="col-text">
+          <p class="lead">
+            The cube has exactly six faces and will never have a seventh.
+          </p>
+          <p>
+            When a world is built in squares, the people who live in it begin to think like the squares —
+            in straight lines of command, in binaries of us and them, in the assumption that someone
+            must be on top. Empire architecture creates empire minds. Dead spaces create dead thinking.
+          </p>
+          <p>
+            Industrial engineering works, when it works at all, by first killing what is living.
+            Trees become lumber. Soil becomes substrate. Ecosystems become resources.
+            The two-party system does the same to human political belief: it strips away the
+            complexity, flattens the dimensionality, and reduces the infinite grammar of conscience
+            to a single binary choice.
+          </p>
+          <blockquote class="inline-quote">
+            "The Fibonacci spiral is the shape of freedom. The cube is the shape of slavery
+            because it must be imposed and maintained by force. The spiral is the shape of
+            freedom because it grows of itself, from the inside out, in conversation with
+            the world it inhabits."
+          </blockquote>
+          <p>
+            The green line on the right panel is not drawn by hand. It is the spline the
+            data traces when you let it move. That is the living path. That is what politics
+            looks like before the jar is shaken.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 3: THE SPIRAL ─────────────────────────────────────────── -->
+  <section id="the-spiral" class="content-section">
+    <div class="section-inner">
+      <div class="section-label">Section III</div>
+      <h2>The <span class="accent-green">Spiral</span></h2>
+      <p class="section-intro">
+        When you run PCA on 12,028 congressional roll call votes across nine congresses,
+        you do not find two blobs. You find a continuous, curved manifold — members
+        distributed across a spectrum, with crossover zones, mixed clusters, and
+        dimensionality that demands more than one axis to describe.
+      </p>
+      <div class="three-col">
+        <div class="stat-card">
+          <div class="stat-card-num accent-green">36.6%</div>
+          <div class="stat-card-label">Variance explained by PC1</div>
+          <div class="stat-card-body">
+            The primary left-right axis. But it captures barely a third of the signal.
+            The rest lives in dimensions the two-party label erases.
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-num accent-gold">11.3%</div>
+          <div class="stat-card-label">Variance in PC2</div>
+          <div class="stat-card-body">
+            A second, cross-cutting dimension — regional blocs, urban-rural divides,
+            issue-specific coalitions — invisible to the R/D binary.
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-num accent-green">5 dims</div>
+          <div class="stat-card-label">Needed for 80% of variance</div>
+          <div class="stat-card-body">
+            A two-party system implies one dimension. The data requires at least five
+            to describe 80% of the actual variation in human political behavior.
+          </div>
+        </div>
+      </div>
+      <div class="full-viz">
+        <img src="outputs/congress_pca_by_party.png" alt="PCA by Party" class="viz-img" />
+        <p class="viz-caption">
+          Each point is a member of Congress (110th–118th House). Color = party label.
+          The faint rectangles are the imposed blocks. The organic scatter beneath them
+          is the actual living structure. Notice the gradient — the continuous distribution
+          that bleeds across the party boundary.
+        </p>
+      </div>
+      <div class="crossover-grid">
+        <div class="crossover-text">
+          <h3>The Members the Binary Cannot Hold</h3>
+          <p>
+            Some members live in the overlap zone — the political center that the two-party
+            system has no language for. They are coded as R or D, but their votes place them
+            in the territory between. These are the people the jar most violently misrepresents.
+          </p>
+          <p>
+            In a living republic — a free market of law — these members would find natural
+            coalitions. Under the binary, they are either forced to choose a block or
+            rendered invisible.
+          </p>
+        </div>
+        <div class="crossover-img">
+          <img src="outputs/congress_crossover_members.png" alt="Crossover Members" class="viz-img" />
+          <p class="viz-caption">Members in the PC1 overlap zone — the data's way of showing
+          that the binary is not a fact of nature but a constraint imposed from outside.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4: THE GRAMMAR ──────────────────────────────────────────── -->
+  <section id="the-grammar" class="content-section alt-bg">
+    <div class="section-inner">
+      <div class="section-label">Section IV</div>
+      <h2>The <span class="accent-green">Grammar</span></h2>
+      <div class="two-col">
+        <div class="col-text">
+          <p class="lead">
+            DNA is not a blueprint. It is a grammar.
+          </p>
+          <p>
+            A blueprint specifies exactly where every element goes, and any deviation from
+            the blueprint is an error. DNA is a grammar — a set of rules for generating
+            possible sentences, none of which are specified in advance, all of which emerge
+            from the interaction between the grammar and the particular context in which
+            it is being expressed.
+          </p>
+          <p>
+            The two-party system is a blueprint: you are R or D. The actual political beliefs
+            of human beings are a grammar: an infinite variety of positions generated from
+            the interaction of conscience, experience, community, and context.
+          </p>
+          <blockquote class="inline-quote">
+            "Ecosystems are not machines. They are conversations — ongoing, multi-party
+            negotiations between organisms, environments, disturbances, and opportunities,
+            producing outcomes that no single participant planned or could have predicted.
+            If we understand this code, we do not control life. We collaborate with it."
+          </blockquote>
+          <p>
+            The scree plot on the right makes this concrete: the two-party assumption
+            is exactly one dimension (highlighted in red). The living grammar of congressional
+            voting requires at minimum five dimensions to capture 80% of what is actually happening.
+          </p>
+          <div class="data-finding">
+            <span class="finding-label">Key Insight</span>
+            Hayek called this <em>spontaneous order</em>: the rich, adaptive structure that
+            emerges when individuals act from their own local knowledge and conscience —
+            not when a central authority imposes a category system on them.
+          </div>
+        </div>
+        <div class="col-viz">
+          <img src="outputs/living_dimensions.png" alt="Living Dimensions" class="viz-img" />
+          <p class="viz-caption">
+            The red-highlighted bar is the entire two-party assumption. The data requires
+            far more — 5 dimensions for 80%, 10+ for full fidelity. Political space is a grammar,
+            not a blueprint.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 5: JOTHAM'S PARABLE ──────────────────────────────────── -->
+  <section id="jotham" class="content-section">
+    <div class="section-inner">
+      <div class="section-label">Section V — Judges 9</div>
+      <h2>Jotham's <span class="accent-gold">Parable</span></h2>
+      <p class="section-intro">
+        The trees went to anoint a king over them. The olive tree declined. The fig tree declined.
+        The vine declined. It was the thornbush — the plant with no fruit, no oil, no sweetness to offer —
+        that finally accepted the kingship. And the thornbush makes a terrible king, because thorns were never meant to rule.
+      </p>
+      <div class="parable-grid">
+        <div class="parable-text">
+          <p>
+            Every natural cluster in the data has its own character — its own ideological fruit.
+            Some lean toward fiscal conservatism. Others toward social libertarianism. Others
+            toward regional protectionism. Each is a distinct voice in the grammar of American
+            political life.
+          </p>
+          <p>
+            The two-party system forces all of these trees to choose: are you R, or are you D?
+            Are you with the crown, or against it? This is the parable. The olive tree does not
+            want the crown. It wants to give oil. The vine does not want to rule. It wants to give wine.
+          </p>
+          <p>
+            When you force the olive tree to choose between two thornbushes, you get neither olive
+            oil nor justice. You get a king who rules by default, because everyone with actual fruit
+            declined a role they were never designed for.
+          </p>
+          <blockquote class="inline-quote">
+            "In any healthy ecosystem, no single element rises above the rest to command the whole.
+            Every part is equal in worth, distinct in function, and necessary to the system's integrity.
+            Cancer is not a foreign invader. It is a cell that forgot its role — that began to replicate
+            without constraint, that chose dominance over participation."
+          </blockquote>
+          <p>
+            The stacked bars show what each natural cluster actually contains: not pure R or pure D,
+            but distinct mixtures — each cluster is its own tree, with members from both parties who
+            share a common ideological fruit that the party label obscures.
+          </p>
+        </div>
+        <div class="parable-viz">
+          <img src="outputs/jothams_parable.png" alt="Jotham's Parable" class="viz-img" />
+          <p class="viz-caption">
+            Left: Each natural cluster named as a tree, plotted in PCA space. The R/D boundary
+            (faint letters) shows how crudely the binary carves up what are actually distinct,
+            fruit-bearing groups. Right: Party composition of each tree — none is pure,
+            because the trees do not know the party boundary exists.
+          </p>
+        </div>
+      </div>
+      <div class="full-viz">
+        <img src="outputs/congress_natural_clusters.png" alt="Natural Clusters" class="viz-img" />
+        <p class="viz-caption">
+          The same 1,091 members, colored three ways: by 3, 4, and 5 natural clusters.
+          The blue/red background shading is the imposed party boundary. In every panel,
+          the natural clusters cut cleanly across that boundary. The trees do not respect the jar.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 6: FREE MARKET OF LAW ─────────────────────────────────── -->
+  <section id="free-market" class="content-section alt-bg">
+    <div class="section-inner">
+      <div class="section-label">Section VI</div>
+      <h2>The Free Market <span class="accent-green">of Law</span></h2>
+      <div class="two-col">
+        <div class="col-text">
+          <p class="lead">
+            A true republic is not a democracy of mobs. It is a free market of law.
+          </p>
+          <p>
+            In a market, price emerges from the distributed knowledge of millions of participants —
+            each acting on their own local information, their own relationships, their own conscience.
+            No central authority possesses enough knowledge to set price correctly. The same is true
+            of law.
+          </p>
+          <p>
+            Hayek called this <em>spontaneous order</em>: the robust, adaptive structure that
+            arises when agents act freely from their own knowledge rather than being commanded
+            from above. The two-party system is the opposite of spontaneous order. It is a
+            central plan imposed on the free market of human belief.
+          </p>
+          <blockquote class="inline-quote">
+            "When each person acts independently but from the same source — the same conscience —
+            the result is spontaneous order, the most robust and adaptive kind of order that exists,
+            because it cannot be brought down by attacking any single node."
+          </blockquote>
+          <p>
+            The right pie chart shows what a free market of law would look like: proportional
+            representation of the natural clusters that actually exist in the data.
+            Ten distinct voices. Not two. Each with its own fruit. None forced to be king.
+          </p>
+          <div class="data-finding">
+            <span class="finding-label">The Argument</span>
+            Proportional multi-party systems (Germany, Netherlands, Scandinavia) consistently
+            outperform binary systems on policy coherence, voter representation, and legislative
+            output. The data shows why: they are closer to the living structure of human belief.
+          </div>
+        </div>
+        <div class="col-viz">
+          <img src="outputs/free_market_of_law.png" alt="Free Market of Law" class="viz-img" />
+          <p class="viz-caption">
+            Left: The current binary — two blocks consuming all political oxygen.
+            Right: What the data actually contains — ten distinct voices, each with its own
+            ideological character. This is the republic the living system wants to become.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 7: UNITED NATIONS ─────────────────────────────────────── -->
+  <section id="united-nations" class="content-section">
+    <div class="section-inner">
+      <div class="section-label">Section VII — International Evidence</div>
+      <h2>The <span class="accent-gold">World</span> Is Not Two Blocks Either</h2>
+      <p class="section-intro">
+        The Cold War imposed a binary on the entire planet: West or East, NATO or Warsaw Pact.
+        UN General Assembly voting data across 6,189 resolutions and 199 nations tells a different story.
+      </p>
+      <div class="full-viz">
+        <img src="outputs/un_country_clusters.png" alt="UN Country Clusters" class="viz-img" />
+        <p class="viz-caption">
+          Left: Nations colored by Cold War block assignment — the jar shaken on a planetary scale.
+          Right: The same nations colored by natural k=4 clusters from unsupervised learning.
+          The natural groupings do not map to the imposed blocks. Regional, economic, and
+          historical affinities produce a more complex, more honest picture of how nations actually align.
+        </p>
+      </div>
+      <div class="un-stats">
+        <div class="stat-card">
+          <div class="stat-card-num accent-gold">0.434</div>
+          <div class="stat-card-label">Cold War binary silhouette</div>
+          <div class="stat-card-body">The imposed East/West split explains less of the variance than any natural clustering above k=2.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-num accent-green">0.461</div>
+          <div class="stat-card-label">Natural k=4 silhouette</div>
+          <div class="stat-card-body">The world wants four natural groupings, not two ideological blocks. The data, like the nations themselves, refuses the jar.</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-num">30.3%</div>
+          <div class="stat-card-label">PC1 variance (international)</div>
+          <div class="stat-card-body">Even globally, the primary axis explains less than a third of the signal. The planet's politics is not a line.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 8: INTERACTIVE EXPLORER ───────────────────────────────── -->
+  <section id="explorer" class="content-section alt-bg">
+    <div class="section-inner">
+      <div class="section-label">Section VIII — Live Data</div>
+      <h2>The <span class="accent-green">Explorer</span></h2>
+      <p class="section-intro">
+        The visualizations above are static. This is the living data — hover over any point to see
+        the actual member of Congress or nation behind it. Find your representative. Find the senators
+        whose votes place them closest to or farthest from their supposed party. Watch the spiral.
+      </p>
+
+      <div class="tab-container">
+        <div class="tab-buttons">
+          <button class="tab-btn active" onclick="showTab('congress-tab', this)">
+            Congress (110th–118th House)
+          </button>
+          <button class="tab-btn" onclick="showTab('un-tab', this)">
+            UN General Assembly
+          </button>
+        </div>
+        <div id="congress-tab" class="tab-panel active">
+          <p class="explorer-note">
+            1,091 House members · 12,028 roll call votes · 110th–118th Congress ·
+            Hover to identify · Color = party label · Axes = PCA dimensions
+          </p>
+          <iframe
+            src="outputs/congress_interactive.html"
+            width="100%"
+            height="650px"
+            frameborder="0"
+            title="Congress PCA Interactive"
+          ></iframe>
+        </div>
+        <div id="un-tab" class="tab-panel">
+          <p class="explorer-note">
+            199 nations · 6,189 UN General Assembly resolutions · 1946–2015 ·
+            Hover to identify · Color = Cold War block assignment · Axes = PCA dimensions
+          </p>
+          <iframe
+            src="outputs/un_interactive.html"
+            width="100%"
+            height="650px"
+            frameborder="0"
+            title="UN PCA Interactive"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 9: THE CONCLUSION ─────────────────────────────────────── -->
+  <section id="conclusion" class="content-section">
+    <div class="section-inner">
+      <div class="section-label">The Argument, Complete</div>
+      <h2>The <span class="accent-green">True</span> Republic</h2>
+      <div class="conclusion-body">
+        <p class="lead">
+          The data has spoken. Now the philosophy can complete the argument.
+        </p>
+        <div class="conclusion-cols">
+          <div>
+            <h3>What the data shows</h3>
+            <ul class="argument-list">
+              <li>Congressional voting patterns require <strong>5+ dimensions</strong> to describe — not 1</li>
+              <li>The two-party binary has the <strong>lowest clustering score</strong> of every k tested</li>
+              <li>Natural clusters <strong>cross party lines</strong> — they are not the parties</li>
+              <li>Crossover members live in genuine ideological <strong>middle ground</strong> the binary erases</li>
+              <li>UN nations naturally form <strong>4 geopolitical clusters</strong>, not the imposed Cold War 2</li>
+              <li>The data is a <strong>continuous spiral</strong>, not two discrete blocks</li>
+            </ul>
+          </div>
+          <div>
+            <h3>What this means</h3>
+            <ul class="argument-list">
+              <li>The two-party system is an <strong>imposed constraint</strong>, not a natural structure</li>
+              <li>A true republic would allow <strong>natural coalitions</strong> to form and dissolve</li>
+              <li>Law, like a market, works best when it emerges from <strong>distributed conscience</strong></li>
+              <li>Proportional representation reflects <strong>the living structure</strong> the data reveals</li>
+              <li>Spontaneous order — Hayek's insight — is what political freedom <strong>actually produces</strong></li>
+              <li>The spiral always returns. Blocks <strong>forget they are made of life</strong>.</li>
+            </ul>
+          </div>
+        </div>
+        <blockquote class="closing-quote">
+          "The spiral returns. Blocks forget that they are made of life. Spirals remember.
+          The choice between them is not merely a choice about architecture or agriculture or politics.
+          It is a choice about what kind of world we are willing to live in — and what kind of world
+          we are willing to become."
+          <cite>— The Spiral and the Block: A Sagent's Chronicle of Freedom, Story, and the Living World</cite>
+        </blockquote>
+        <blockquote class="closing-quote">
+          "The thorns return to guarding the garden, instead of trying to be king.
+          So that every part of the system knows its function and finds meaning in performing it.
+          So that the spiral, which never really stopped, begins again."
+          <cite>— The Spiral Steward: Life-Based Design, Sacred Freedom, and the End of the Engineer</cite>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ─────────────────────────────────────────────────────────── -->
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Data Sources</h4>
+        <ul>
+          <li>Voteview · voteview.com — Congressional roll calls &amp; DW-NOMINATE</li>
+          <li>UN Digital Library — General Assembly voting 1946–2015</li>
+          <li>dgrtwo/unvotes — R package &amp; tidy datasets</li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Methods</h4>
+        <ul>
+          <li>Principal Component Analysis (scikit-learn)</li>
+          <li>K-Means clustering · Silhouette analysis</li>
+          <li>Vote matrix: member × roll-call (Yea=+1, Nay=−1, Absent=0)</li>
+          <li>110th–118th House · 1,091 members · 12,028 votes</li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Philosophy</h4>
+        <ul>
+          <li><em>The Spiral and the Block</em> — Sage Clokey</li>
+          <li><em>The Spiral Steward</em> — Sage Clokey</li>
+          <li>Hayek · Spontaneous order</li>
+          <li>Judges 9 · Jotham's Parable</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      ⬡ The Living Republic · Analysis by Sage Clokey · Data: Voteview + UN Digital Library
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
