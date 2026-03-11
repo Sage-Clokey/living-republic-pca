@@ -44,6 +44,11 @@ from voting_pca import (
     plot_party_strands,
     plot_congress_colored,
     plot_3d_helix,
+    # Congress — raw voting data
+    plot_congress_voting_dashboard,
+    plot_congress_member_voting,
+    plot_congress_margin_ridges,
+    plot_per_congress_pca,
     # Congress — Sagent / Spiral-and-Block themed
     plot_the_jar,
     plot_spiral_vs_block,
@@ -109,6 +114,13 @@ def run_congress_analysis() -> None:
     plot_party_strands(pca_coords, meta)
     plot_temporal_helix(pca_coords, meta)
     plot_3d_helix(pca_coords, meta)
+
+    # 8. Raw voting data dashboards
+    print("\nGenerating raw voting data plots …")
+    plot_congress_voting_dashboard(votes, members, rollcalls)
+    plot_congress_member_voting(votes, members, rollcalls)
+    plot_congress_margin_ridges(rollcalls)
+    plot_per_congress_pca(votes, members, rollcalls)
 
     print(f"\nGenerating Sagent-themed thesis plots (best natural k={best_k}) …")
     plot_the_jar(pca_coords, meta, natural_labels)

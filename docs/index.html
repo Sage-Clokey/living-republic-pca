@@ -18,6 +18,7 @@
         <a href="#the-spiral">The Spiral</a>
         <a href="#the-helix">The Helix</a>
         <a href="#the-grammar">The Grammar</a>
+        <a href="#raw-data">Raw Data</a>
         <a href="#jotham">Jotham's Parable</a>
         <a href="#free-market">Free Market of Law</a>
         <a href="#explorer">Data Explorer</a>
@@ -358,6 +359,60 @@
             not a blueprint.
           </p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SECTION 4b: RAW VOTING DATA ──────────────────────────────────── -->
+  <section id="raw-data" class="content-section">
+    <div class="section-inner">
+      <div class="section-label">Section IV — The Raw Record</div>
+      <h2>The Votes <span class="accent-gold">Themselves</span></h2>
+      <p class="section-intro">
+        Before any dimensionality reduction. Before any clustering. Just the numbers —
+        how many roll calls each congress took, how contested they were, how often the
+        two parties landed on opposite sides, and how often individual members broke ranks.
+      </p>
+
+      <div class="full-viz">
+        <img src="outputs/congress_vote_stats.png" alt="Congress Voting Dashboard" class="viz-img" />
+        <p class="viz-caption">
+          Six panels, nine congresses, no abstraction. Top row: roll call volume (color = majority party),
+          partisan vs bipartisan vote share, party unity scores. Bottom row: close vote rate
+          (margin &lt; 20), median vote margin over time, full margin distributions as violins.
+        </p>
+      </div>
+
+      <div class="two-col" style="margin-top:3rem">
+        <div class="col-viz">
+          <img src="outputs/congress_member_voting.png" alt="Member Voting" class="viz-img" />
+          <p class="viz-caption">
+            Member-level breakdown: seat distribution per congress (with the 218 majority line),
+            participation rate, crossover rates for R and D separately, and a scatter
+            of Republican vs Democrat yea rates on every roll call in the 118th Congress —
+            green dots agree, red dots are the votes where the two parties split.
+          </p>
+        </div>
+        <div class="col-viz">
+          <img src="outputs/congress_margin_ridges.png" alt="Margin Ridge Plot" class="viz-img" />
+          <p class="viz-caption">
+            The geological record. Each ridge is one congress, stacked by time.
+            Left edge = knife-edge votes. Right edge = near-unanimous.
+            The 117th and 118th are dominated by close votes in a way no earlier congress was —
+            a House more divided than at any point in this 18-year window.
+          </p>
+        </div>
+      </div>
+
+      <div class="full-viz" style="margin-top:3rem">
+        <img src="outputs/per_congress_pca.png" alt="Per-Congress PCA" class="viz-img" />
+        <p class="viz-caption">
+          Nine independent PCAs — one per congress. Each panel is computed only from that
+          congress's votes, with no influence from any other year. The diamond markers are
+          party centroids; the gold dashed line is the gap between them — polarization
+          measured geometrically. Watch the gap grow. Watch the clusters tighten or loosen.
+          This is the helix expanding, one frame at a time.
+        </p>
       </div>
     </div>
   </section>

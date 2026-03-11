@@ -1447,7 +1447,682 @@ def plot_3d_helix(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 7.  SAGENT / SPIRAL-AND-BLOCK THEMED VISUALIZATIONS
+# 7.  RAW VOTING DATA — PER-CONGRESS STATISTICS
+#     No dimensionality reduction.  Just the numbers from the actual votes.
+# ─────────────────────────────────────────────────────────────────────────────
+
+CONGRESS_LABELS = {
+    110: "110th\n2007–09", 111: "111th\n2009–11", 112: "112th\n2011–13",
+    113: "113th\n2013–15", 114: "114th\n2015–17", 115: "115th\n2017–19",
+    116: "116th\n2019–21", 117: "117th\n2021–23", 118: "118th\n2023–25",
+}
+MAJORITY_PARTY = {
+    110: "Democrat", 111: "Democrat", 112: "Republican", 113: "Republican",
+    114: "Republican", 115: "Republican", 116: "Democrat", 117: "Democrat",
+    118: "Republican",
+}
+
+
+def _build_congress_stats(
+    votes_df: pd.DataFrame,
+    members_df: pd.DataFrame,
+    rollcalls_df: pd.DataFrame,
+    congress_range: tuple[int, int] = (110, 118),
+) -> pd.DataFrame:
+    """
+    Compute per-congress summary statistics from raw vote data.
+
+    Returns a DataFrame indexed by congress with columns:
+      n_rollcalls, n_members, pct_partisan, pct_close, pct_bipartisan,
+      r_unity, d_unity, median_margin, mean_margin, pct_passed
+    """
+    lo, hi = congress_range
+    PARTY = {100: "Democrat", 200: "Republican"}
+
+    m = members_df.copy()
+    m["party"] = m["party_code"].map(PARTY).fillna("Other")
+    # one row per icpsr (latest congress wins)
+    m_last = m.sort_values("congress").drop_duplicates("icpsr", keep="last")[
+        ["icpsr", "party"]
+    ]
+
+    v = votes_df.merge(m_last, on="icpsr", how="left")
+    v["yea"] = v["cast_code"].isin([1, 2, 3]).astype(int)
+    v["nay"] = v["cast_code"].isin([4, 5, 6]).astype(int)
+
+    rows = []
+    for c in range(lo, hi + 1):
+        vc = v[v["congress"] == c]
+        rc = rollcalls_df[rollcalls_df["congress"] == c]
+        if len(rc) == 0:
+            continue
+
+        rv = vc[vc["party"] == "Republican"]
+        dv = vc[vc["party"] == "Democrat"]
+
+        margins    = (rc["yea_count"] - rc["nay_count"]).abs()
+        n_close    = (margins < 20).sum()
+        pct_passed = (rc["vote_result"].str.lower().str.contains("pass|agree|adopt", na=False)).mean()
+
+        # Per-roll-call partisan / unity computation (sample up to 800 roll calls)
+        rns = rc["rollnumber"].unique()
+        rns_sample = rns if len(rns) <= 800 else np.random.default_rng(42).choice(rns, 800, replace=False)
+
+        partisan_count = 0
+        r_with_party   = []
+        d_with_party   = []
+
+        for rn in rns_sample:
+            r = rv[rv["rollnumber"] == rn]
+            d = dv[dv["rollnumber"] == rn]
+            if len(r) < 5 or len(d) < 5:
+                continue
+            r_yea = r["yea"].mean()
+            d_yea = d["yea"].mean()
+            r_maj = r_yea >= 0.5
+            d_maj = d_yea >= 0.5
+            if r_maj != d_maj:
+                partisan_count += 1
+            # unity = fraction of members voting with their party majority
+            r_with_party.append(r["yea"].mean() if r_maj else r["nay"].mean())
+            d_with_party.append(d["yea"].mean() if d_maj else d["nay"].mean())
+
+        n_valid = max(len(rns_sample), 1)
+        pct_partisan   = partisan_count / n_valid * 100
+        pct_bipartisan = 100 - pct_partisan
+
+        rows.append({
+            "congress":       c,
+            "label":          CONGRESS_LABELS[c],
+            "majority":       MAJORITY_PARTY[c],
+            "n_rollcalls":    len(rc),
+            "n_members":      vc["icpsr"].nunique(),
+            "pct_partisan":   pct_partisan,
+            "pct_bipartisan": pct_bipartisan,
+            "pct_close":      n_close / len(rc) * 100,
+            "r_unity":        np.mean(r_with_party) * 100 if r_with_party else np.nan,
+            "d_unity":        np.mean(d_with_party) * 100 if d_with_party else np.nan,
+            "median_margin":  margins.median(),
+            "mean_margin":    margins.mean(),
+            "pct_passed":     pct_passed * 100,
+        })
+
+    return pd.DataFrame(rows).set_index("congress")
+
+
+def plot_congress_voting_dashboard(
+    votes_df: pd.DataFrame,
+    members_df: pd.DataFrame,
+    rollcalls_df: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    6-panel dashboard of raw per-congress voting statistics.
+    No PCA.  Just the numbers.
+
+    Panels:
+      1. Roll call volume per congress
+      2. Partisan vs bipartisan vote share
+      3. Party unity scores (R and D separately)
+      4. Close vote rate (margin < 20)
+      5. Median vote margin per congress
+      6. Majority party control timeline
+    """
+    print("Computing per-congress statistics …")
+    stats = _build_congress_stats(votes_df, members_df, rollcalls_df)
+    congresses = stats.index.tolist()
+    labels     = [stats.loc[c, "label"] for c in congresses]
+    x          = np.arange(len(congresses))
+    years      = [CONGRESS_YEARS[c] for c in congresses]
+
+    fig, axes = plt.subplots(2, 3, figsize=(20, 12))
+    fig.patch.set_facecolor("#0a0a14")
+    axes = axes.flatten()
+
+    BAR_D   = "#4466ff"
+    BAR_R   = "#E81B23"
+    BAR_N   = "#00ffaa"
+    BAR_DIM = "#555577"
+
+    # ── 1. Roll call volume ──────────────────────────────────────────────────
+    ax = axes[0]
+    ax.set_facecolor("#0a0a14")
+    cols = [BAR_R if stats.loc[c,"majority"]=="Republican" else BAR_D for c in congresses]
+    bars = ax.bar(x, stats["n_rollcalls"], color=cols, alpha=0.85, width=0.65)
+    for bar, val in zip(bars, stats["n_rollcalls"]):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 15,
+                f"{int(val):,}", ha="center", color="#aaaacc", fontsize=8)
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7.5)
+    ax.set_ylabel("Number of Roll Calls", color="#aaaacc")
+    ax.set_title("Roll Call Volume per Congress\n(color = majority party)", color="white", fontsize=11)
+    _style_ax(ax)
+    # legend
+    ax.legend(handles=[
+        mpatches.Patch(color=BAR_R, label="Republican majority"),
+        mpatches.Patch(color=BAR_D, label="Democrat majority"),
+    ], framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577", labelcolor="white", fontsize=8)
+
+    # ── 2. Partisan vs bipartisan share ─────────────────────────────────────
+    ax = axes[1]
+    ax.set_facecolor("#0a0a14")
+    ax.bar(x, stats["pct_partisan"],   color=BAR_DIM,  alpha=0.9, width=0.65, label="Partisan votes")
+    ax.bar(x, stats["pct_bipartisan"], color=BAR_N, alpha=0.75, width=0.65,
+           bottom=stats["pct_partisan"], label="Bipartisan votes")
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7.5)
+    ax.set_ylabel("% of Roll Calls", color="#aaaacc")
+    ax.set_ylim(0, 105)
+    ax.set_title("Partisan vs Bipartisan Votes\n(R and D on opposite sides = partisan)",
+                 color="white", fontsize=11)
+    # annotate partisan pct
+    for i, (c, row) in enumerate(stats.iterrows()):
+        ax.text(i, row["pct_partisan"]/2, f"{row['pct_partisan']:.0f}%",
+                ha="center", va="center", color="white", fontsize=8, fontweight="bold")
+    _style_ax(ax)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577", labelcolor="white", fontsize=8)
+
+    # ── 3. Party unity scores ────────────────────────────────────────────────
+    ax = axes[2]
+    ax.set_facecolor("#0a0a14")
+    w = 0.3
+    ax.bar(x - w/2, stats["r_unity"], width=w, color=BAR_R, alpha=0.85, label="Republican unity")
+    ax.bar(x + w/2, stats["d_unity"], width=w, color=BAR_D, alpha=0.85, label="Democrat unity")
+    ax.axhline(50, color="#444466", lw=1, ls="--")
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7.5)
+    ax.set_ylabel("% voting with party majority", color="#aaaacc")
+    ax.set_ylim(40, 100)
+    ax.set_title("Party Unity Scores\n(how often members vote with their party)",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577", labelcolor="white", fontsize=8)
+
+    # ── 4. Close vote rate ───────────────────────────────────────────────────
+    ax = axes[3]
+    ax.set_facecolor("#0a0a14")
+    ax.bar(x, stats["pct_close"], color="#FFD700", alpha=0.85, width=0.65)
+    for i, (c, row) in enumerate(stats.iterrows()):
+        ax.text(i, row["pct_close"] + 0.4, f"{row['pct_close']:.1f}%",
+                ha="center", color="#FFD700", fontsize=8)
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7.5)
+    ax.set_ylabel("% of Roll Calls decided by < 20 votes", color="#aaaacc")
+    ax.set_title("Close Vote Rate\n(margin < 20 — the House on the edge)",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+
+    # ── 5. Median vote margin ────────────────────────────────────────────────
+    ax = axes[4]
+    ax.set_facecolor("#0a0a14")
+    ax.plot(years, stats["median_margin"], "o-", color=BAR_N, lw=2.5, ms=8)
+    ax.fill_between(years, stats["median_margin"], alpha=0.12, color=BAR_N)
+    ax.plot(years, stats["mean_margin"],   "s--", color="#FFD700", lw=1.5, ms=6, alpha=0.8,
+            label="Mean margin")
+    for yr, val in zip(years, stats["median_margin"]):
+        ax.annotate(f"{val:.0f}", (yr, val), xytext=(0, 8),
+                    textcoords="offset points", ha="center", color=BAR_N, fontsize=8)
+    ax.set_xticks(years); ax.set_xticklabels([str(y) for y in years], fontsize=8)
+    ax.set_ylabel("Vote margin (Yea − Nay)", color="#aaaacc")
+    ax.set_title("Median Vote Margin per Congress\n(lower = closer, more contested chamber)",
+                 color="white", fontsize=11)
+    ax.legend(["Median margin", "Mean margin"], framealpha=0.2,
+              facecolor="#1a1a2e", edgecolor="#555577", labelcolor="white", fontsize=8)
+    _style_ax(ax)
+
+    # ── 6. Margin distribution ridge plot (violin proxy) ────────────────────
+    ax = axes[5]
+    ax.set_facecolor("#0a0a14")
+    rc_all = rollcalls_df[
+        (rollcalls_df["chamber"] == "House") &
+        (rollcalls_df["congress"] >= 110) &
+        (rollcalls_df["congress"] <= 118)
+    ].copy()
+    rc_all["margin"] = (rc_all["yea_count"] - rc_all["nay_count"]).abs()
+
+    parts = ax.violinplot(
+        [rc_all[rc_all["congress"] == c]["margin"].dropna().values for c in congresses],
+        positions=x, widths=0.65, showmedians=True, showextrema=False,
+    )
+    for i, pc in enumerate(parts["bodies"]):
+        c = congresses[i]
+        color = BAR_R if MAJORITY_PARTY[c] == "Republican" else BAR_D
+        pc.set_facecolor(color)
+        pc.set_alpha(0.55)
+        pc.set_edgecolor("#333355")
+    parts["cmedians"].set_color("#FFD700")
+    parts["cmedians"].set_linewidth(2)
+
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=7.5)
+    ax.set_ylabel("Vote margin distribution", color="#aaaacc")
+    ax.set_title("Margin Distributions per Congress\n(color = majority party · gold = median)",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+
+    fig.suptitle(
+        "Raw Voting Data — 110th through 118th House  (2007–2025)\n"
+        "No dimensionality reduction. Just the votes.",
+        color="white", fontsize=15, fontweight="bold", y=1.01
+    )
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "congress_vote_stats.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+def plot_congress_member_voting(
+    votes_df: pd.DataFrame,
+    members_df: pd.DataFrame,
+    rollcalls_df: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    Member-level voting breakdown per congress.
+
+    Panels:
+      1. Attendance / participation rate per congress (yea+nay / total votes cast)
+      2. Crossover rate: % of members who voted against their party >10% of the time
+      3. R vs D yea rate on same roll call — scatter per congress showing
+         how often R and D agree on a vote (near diagonal = agreement)
+      4. Stacked area: R seats vs D seats per congress
+    """
+    print("Computing member-level voting stats …")
+    PARTY = {100: "Democrat", 200: "Republican"}
+    m = members_df.copy()
+    m["party"] = m["party_code"].map(PARTY).fillna("Other")
+    m_last = m.sort_values("congress").drop_duplicates("icpsr", keep="last")[["icpsr", "party"]]
+
+    v = votes_df.merge(m_last, on="icpsr", how="left")
+    v["yea"]     = v["cast_code"].isin([1, 2, 3]).astype(int)
+    v["nay"]     = v["cast_code"].isin([4, 5, 6]).astype(int)
+    v["present"] = (~v["cast_code"].isin([1,2,3,4,5,6])).astype(int)
+
+    congresses = list(range(110, 119))
+    years      = [CONGRESS_YEARS[c] for c in congresses]
+    x          = np.arange(len(congresses))
+    labels     = [CONGRESS_LABELS[c] for c in congresses]
+
+    # Per-congress member stats
+    attendance, crossover_r, crossover_d = [], [], []
+    r_seats, d_seats = [], []
+
+    for c in congresses:
+        vc = v[v["congress"] == c]
+        mc = m[m["congress"] == c]
+
+        # Seats
+        r_seats.append((mc["party"] == "Republican").sum())
+        d_seats.append((mc["party"] == "Democrat").sum())
+
+        # Attendance: fraction of yea+nay out of all cast_codes
+        total = len(vc)
+        voted = vc["yea"].sum() + vc["nay"].sum()
+        attendance.append(voted / total * 100 if total else np.nan)
+
+        # Crossover: members voting against party majority > 10% of the time
+        rn_sample = rollcalls_df[rollcalls_df["congress"] == c]["rollnumber"].unique()
+        if len(rn_sample) > 500:
+            rn_sample = np.random.default_rng(42).choice(rn_sample, 500, replace=False)
+
+        for party, store in [("Republican", crossover_r), ("Democrat", crossover_d)]:
+            pv = vc[vc["party"] == party]
+            if len(pv) == 0:
+                store.append(np.nan)
+                continue
+            against = []
+            for icpsr, member_votes in pv.groupby("icpsr"):
+                mv = member_votes[member_votes["rollnumber"].isin(rn_sample)]
+                if len(mv) < 20:
+                    continue
+                # party majority position on each vote
+                party_votes = pv[pv["rollnumber"].isin(mv["rollnumber"].values)]
+                party_yea   = party_votes.groupby("rollnumber")["yea"].mean()
+                member_yea  = mv.set_index("rollnumber")["yea"]
+                aligned     = party_yea.index.intersection(member_yea.index)
+                if len(aligned) < 10:
+                    continue
+                party_pos  = (party_yea[aligned] >= 0.5).astype(int)
+                member_pos = (member_yea[aligned] >= 0.5).astype(int)
+                pct_against = (party_pos != member_pos).mean() * 100
+                against.append(pct_against)
+            store.append(np.mean(against) if against else np.nan)
+
+    fig, axes = plt.subplots(2, 2, figsize=(18, 12))
+    fig.patch.set_facecolor("#0a0a14")
+    axes = axes.flatten()
+
+    BAR_D = "#4466ff"
+    BAR_R = "#E81B23"
+    BAR_N = "#00ffaa"
+
+    # ── 1. Seat share ────────────────────────────────────────────────────────
+    ax = axes[0]
+    ax.set_facecolor("#0a0a14")
+    ax.bar(x, r_seats, color=BAR_R, alpha=0.85, width=0.65, label="Republican seats")
+    ax.bar(x, d_seats, color=BAR_D, alpha=0.85, width=0.65,
+           bottom=r_seats, label="Democrat seats")
+    ax.axhline(218, color="#FFD700", lw=1.2, ls="--", alpha=0.7)
+    ax.text(len(x)-0.4, 221, "218 (majority)", color="#FFD700", fontsize=8)
+    ax.set_xticks(x); ax.set_xticklabels(labels, fontsize=8)
+    ax.set_ylabel("Seats", color="#aaaacc")
+    ax.set_title("Seat Distribution per Congress\n(435 total House seats)",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577",
+              labelcolor="white", fontsize=9)
+    for i, (r, d) in enumerate(zip(r_seats, d_seats)):
+        ax.text(i, r/2, str(r), ha="center", va="center", color="white", fontsize=8, fontweight="bold")
+        ax.text(i, r + d/2, str(d), ha="center", va="center", color="white", fontsize=8, fontweight="bold")
+
+    # ── 2. Attendance / participation ────────────────────────────────────────
+    ax = axes[1]
+    ax.set_facecolor("#0a0a14")
+    ax.plot(years, attendance, "o-", color=BAR_N, lw=2.5, ms=8)
+    ax.fill_between(years, attendance, alpha=0.12, color=BAR_N)
+    for yr, val in zip(years, attendance):
+        ax.annotate(f"{val:.1f}%", (yr, val), xytext=(0, 8),
+                    textcoords="offset points", ha="center", color=BAR_N, fontsize=8)
+    ax.set_ylim(60, 100)
+    ax.set_xticks(years); ax.set_xticklabels([str(y) for y in years], fontsize=8, rotation=30)
+    ax.set_ylabel("% of votes cast (Yea or Nay)", color="#aaaacc")
+    ax.set_title("Member Participation Rate\n(absence = present but not voting)",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+
+    # ── 3. Crossover rates ───────────────────────────────────────────────────
+    ax = axes[2]
+    ax.set_facecolor("#0a0a14")
+    ax.plot(years, crossover_r, "o-", color=BAR_R, lw=2.5, ms=8, label="Republicans crossing over")
+    ax.plot(years, crossover_d, "s-", color=BAR_D, lw=2.5, ms=8, label="Democrats crossing over")
+    ax.fill_between(years, crossover_r, crossover_d,
+                    where=[r > d for r, d in zip(crossover_r, crossover_d)],
+                    alpha=0.07, color=BAR_R)
+    ax.fill_between(years, crossover_r, crossover_d,
+                    where=[d >= r for r, d in zip(crossover_r, crossover_d)],
+                    alpha=0.07, color=BAR_D)
+    ax.set_xticks(years); ax.set_xticklabels([str(y) for y in years], fontsize=8, rotation=30)
+    ax.set_ylabel("Avg % of votes against party majority", color="#aaaacc")
+    ax.set_title("Crossover Rate per Congress\n(how often members break from their party)",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577",
+              labelcolor="white", fontsize=9)
+
+    # ── 4. R vs D agreement on individual votes ──────────────────────────────
+    ax = axes[3]
+    ax.set_facecolor("#0a0a14")
+    # Sample one congress to show R vs D yea rate per roll call
+    # Use the most recent congress (118th) and a sample of votes
+    c_show = 118
+    vc = v[v["congress"] == c_show]
+    rv = vc[vc["party"] == "Republican"]
+    dv = vc[vc["party"] == "Democrat"]
+    rns = vc["rollnumber"].unique()
+    rns_s = np.random.default_rng(42).choice(rns, min(600, len(rns)), replace=False)
+
+    r_yeas, d_yeas = [], []
+    for rn in rns_s:
+        r = rv[rv["rollnumber"] == rn]["yea"]
+        d = dv[dv["rollnumber"] == rn]["yea"]
+        if len(r) >= 5 and len(d) >= 5:
+            r_yeas.append(r.mean())
+            d_yeas.append(d.mean())
+
+    r_yeas = np.array(r_yeas)
+    d_yeas = np.array(d_yeas)
+
+    # Color by agreement vs disagreement
+    agree    = ((r_yeas >= 0.5) == (d_yeas >= 0.5))
+    ax.scatter(r_yeas[agree],    d_yeas[agree],    c="#00ffaa", s=12, alpha=0.4,
+               linewidths=0, label=f"Agree ({agree.sum()})")
+    ax.scatter(r_yeas[~agree],   d_yeas[~agree],   c="#ff4455", s=12, alpha=0.5,
+               linewidths=0, label=f"Disagree ({(~agree).sum()})")
+    ax.plot([0, 1], [0, 1], color="#444466", lw=1, ls="--", alpha=0.5)
+    ax.axvline(0.5, color="#333355", lw=0.8, ls=":")
+    ax.axhline(0.5, color="#333355", lw=0.8, ls=":")
+    ax.set_xlim(-0.05, 1.05); ax.set_ylim(-0.05, 1.05)
+    ax.set_xlabel("Republican Yea Rate", color="#aaaacc")
+    ax.set_ylabel("Democrat Yea Rate", color="#aaaacc")
+    ax.set_title(f"R vs D Yea Rate — 118th Congress (sample of {len(r_yeas)} votes)\n"
+                 "Green = both agree · Red = opposite sides",
+                 color="white", fontsize=11)
+    _style_ax(ax)
+    ax.legend(framealpha=0.2, facecolor="#1a1a2e", edgecolor="#555577",
+              labelcolor="white", fontsize=9)
+    pct_agree = agree.mean() * 100
+    ax.text(0.05, 0.93, f"{pct_agree:.0f}% of sampled votes:\nboth parties on same side",
+            transform=ax.transAxes, color="#00ffaa", fontsize=9, style="italic")
+
+    fig.suptitle(
+        "Member Voting — 110th through 118th House  (2007–2025)\n"
+        "Seats, participation, crossover, and per-vote agreement",
+        color="white", fontsize=15, fontweight="bold", y=1.01
+    )
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "congress_member_voting.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+def plot_congress_margin_ridges(
+    rollcalls_df: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    Ridge / offset histogram showing the full margin distribution for each
+    congress stacked vertically — like a geological cross-section of each
+    Congress's voting character.
+
+    A congress full of landslides (margin ~400) looks completely different
+    from one full of knife-edge votes (margin ~0-20).
+    """
+    congresses = list(range(110, 119))
+    rc = rollcalls_df[
+        (rollcalls_df["chamber"] == "House") &
+        (rollcalls_df["congress"] >= 110) &
+        (rollcalls_df["congress"] <= 118)
+    ].copy()
+    rc["margin"] = (rc["yea_count"] - rc["nay_count"]).abs()
+
+    fig, ax = plt.subplots(figsize=(14, 11))
+    fig.patch.set_facecolor("#0a0a14")
+    ax.set_facecolor("#0a0a14")
+
+    n = len(congresses)
+    bins = np.linspace(0, 435, 50)
+    bin_centers = (bins[:-1] + bins[1:]) / 2
+    spacing = 1.4   # vertical spacing between ridges
+
+    for i, c in enumerate(reversed(congresses)):
+        margins = rc[rc["congress"] == c]["margin"].dropna().values
+        counts, _ = np.histogram(margins, bins=bins, density=True)
+        y_offset = i * spacing
+        color = "#E81B23" if MAJORITY_PARTY[c] == "Republican" else "#4466ff"
+
+        # Fill under the ridge
+        ax.fill_between(bin_centers, y_offset, y_offset + counts * spacing * 0.8,
+                        color=color, alpha=0.45)
+        ax.plot(bin_centers, y_offset + counts * spacing * 0.8,
+                color=color, lw=1.5, alpha=0.9)
+
+        # Label
+        yr  = CONGRESS_YEARS[c]
+        lbl = f"{c}th  {yr}"
+        ax.text(-8, y_offset + 0.05, lbl, ha="right", va="bottom",
+                color="#aaaacc", fontsize=9, fontfamily="monospace")
+
+    ax.set_xlabel("Vote margin (|Yea − Nay|) — 0 = tied, 435 = unanimous",
+                  color="#aaaacc", fontsize=11)
+    ax.set_yticks([])
+    ax.set_xlim(-10, 445)
+
+    # Annotate zones
+    ax.axvspan(0,  20,  alpha=0.06, color="#FFD700")
+    ax.axvspan(380, 435, alpha=0.06, color="#00ffaa")
+    ax.text(10,  n * spacing * 0.95, "Close\nvotes", ha="center",
+            color="#FFD700", fontsize=8, style="italic")
+    ax.text(410, n * spacing * 0.95, "Near\nunan.", ha="center",
+            color="#00ffaa", fontsize=8, style="italic")
+
+    for spine in ax.spines.values():
+        spine.set_edgecolor("#333355")
+    ax.tick_params(colors="#aaaacc")
+    ax.xaxis.label.set_color("#aaaacc")
+    ax.grid(axis="x", color="#1a1a2e", lw=0.5)
+
+    ax.set_title(
+        "Vote Margin Distributions — Each Congress Stacked\n"
+        "The geological record of how contested each House was",
+        color="white", fontsize=13, pad=14, fontweight="bold"
+    )
+    fig.text(0.98, 0.02, "Red = Republican majority  ·  Blue = Democrat majority",
+             ha="right", color="#888899", fontsize=8, style="italic")
+
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "congress_margin_ridges.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+def plot_per_congress_pca(
+    votes_df: pd.DataFrame,
+    members_df: pd.DataFrame,
+    rollcalls_df: pd.DataFrame,
+    save_path: Path | None = None,
+) -> None:
+    """
+    Run a completely independent PCA for each congress (110–118) and plot
+    all 9 in a 3×3 grid.
+
+    Each panel shows only that congress's members — party structure, spread,
+    and shape are derived purely from that congress's votes with no influence
+    from other time periods.
+
+    Key things to notice:
+    - The overall left-right axis is consistent but the *width* of each cluster
+      changes — congresses with tight party discipline are narrow blobs;
+      those with internal dissent spread wide along PC2.
+    - The gap between R and D centroids grows across congresses — the helical
+      expansion (polarization) visible in a single plot.
+    - Some congresses show members crossing into the other party's territory;
+      others show a clean no-man's land between the two clusters.
+    """
+    PARTY = {100: "Democrat", 200: "Republican"}
+    m = members_df.copy()
+    m["party"] = m["party_code"].map(PARTY).fillna("Other")
+
+    congresses = list(range(110, 119))
+    fig, axes = plt.subplots(3, 3, figsize=(21, 18))
+    fig.patch.set_facecolor("#0a0a14")
+    axes = axes.flatten()
+
+    r_centroids, d_centroids = [], []   # to trace the expanding gap
+
+    for i, c in enumerate(congresses):
+        ax = axes[i]
+        ax.set_facecolor("#0a0a14")
+
+        mc = m[m["congress"] == c]
+        vc = votes_df[votes_df["congress"] == c].copy()
+
+        # Encode votes
+        def encode(x):
+            if x in (1, 2, 3): return 1
+            if x in (4, 5, 6): return -1
+            return 0
+
+        vc["vote_enc"] = vc["cast_code"].apply(encode)
+        vc["rc_key"]   = vc["rollnumber"].astype(str)
+
+        # Pivot
+        pivot = vc.pivot_table(
+            index="icpsr", columns="rc_key", values="vote_enc", aggfunc="first"
+        ).fillna(0)
+
+        # Filter sparse members
+        active = (pivot != 0).sum(axis=1)
+        pivot  = pivot[active >= 30]
+        pivot  = pivot.loc[:, (pivot != 0).sum(axis=0) >= 20]
+
+        if pivot.shape[0] < 10 or pivot.shape[1] < 10:
+            ax.text(0.5, 0.5, f"Insufficient data\n{c}th Congress",
+                    ha="center", va="center", color="#888899", transform=ax.transAxes)
+            continue
+
+        # PCA
+        pca = PCA(n_components=2, random_state=42)
+        coords = pca.fit_transform(pivot.values)
+        var1   = pca.explained_variance_ratio_[0] * 100
+        var2   = pca.explained_variance_ratio_[1] * 100
+
+        # Align metadata
+        meta_c = mc.drop_duplicates("icpsr", keep="last").set_index("icpsr")
+        meta_c = meta_c.loc[meta_c.index.isin(pivot.index)]
+        pivot_aligned = pivot.loc[pivot.index.isin(meta_c.index)]
+        coords_aligned = pca.transform(pivot_aligned.values)
+        parties = meta_c.loc[pivot_aligned.index, "party"].values
+
+        pc1 = coords_aligned[:, 0]
+        pc2 = coords_aligned[:, 1]
+
+        # Scatter by party
+        for party, color in [("Republican","#E81B23"), ("Democrat","#4466ff"), ("Other","#888888")]:
+            mask = parties == party
+            if mask.sum() == 0: continue
+            ax.scatter(pc1[mask], pc2[mask], c=color, s=12, alpha=0.55, linewidths=0)
+
+        # Centroid markers
+        if (parties == "Republican").sum() > 0:
+            rx, ry = pc1[parties=="Republican"].mean(), pc2[parties=="Republican"].mean()
+            ax.scatter([rx], [ry], c="#ff4444", s=120, marker="D", zorder=6,
+                       edgecolors="white", linewidths=0.8)
+            r_centroids.append((rx, ry))
+        if (parties == "Democrat").sum() > 0:
+            dx, dy = pc1[parties=="Democrat"].mean(), pc2[parties=="Democrat"].mean()
+            ax.scatter([dx], [dy], c="#6688ff", s=120, marker="D", zorder=6,
+                       edgecolors="white", linewidths=0.8)
+            d_centroids.append((dx, dy))
+
+        # Centroid gap annotation
+        if (parties=="Republican").sum()>0 and (parties=="Democrat").sum()>0:
+            gap = np.sqrt((rx-dx)**2 + (ry-dy)**2)
+            ax.plot([rx, dx], [ry, dy], color="#FFD700", lw=1.2, ls="--", alpha=0.6, zorder=5)
+            mid_x, mid_y = (rx+dx)/2, (ry+dy)/2
+            ax.text(mid_x, mid_y, f"gap={gap:.1f}", ha="center", color="#FFD700",
+                    fontsize=7, style="italic")
+
+        yr    = CONGRESS_YEARS[c]
+        maj   = MAJORITY_PARTY[c]
+        maj_c = "#E81B23" if maj=="Republican" else "#4466ff"
+        n_r   = (parties=="Republican").sum()
+        n_d   = (parties=="Democrat").sum()
+
+        ax.set_title(
+            f"{c}th Congress  ({yr}–{yr+2})\n"
+            f"PC1={var1:.1f}%  PC2={var2:.1f}%   "
+            f"R={n_r} D={n_d}",
+            color="white", fontsize=10, pad=6
+        )
+        ax.text(0.02, 0.96, f"Majority: {maj}", transform=ax.transAxes,
+                color=maj_c, fontsize=8, fontweight="bold", va="top")
+        ax.set_xlabel("PC1", color="#666688", fontsize=8)
+        ax.set_ylabel("PC2", color="#666688", fontsize=8)
+        _style_ax(ax)
+
+    fig.suptitle(
+        "Individual PCA — Each Congress Independently  (110th–118th House)\n"
+        "Each panel is its own PCA with no influence from other years. "
+        "Diamond = party centroid. Gold dashes = centroid gap (polarization).",
+        color="white", fontsize=14, y=1.01, fontweight="bold"
+    )
+    plt.tight_layout()
+    out = save_path or (OUT_DIR / "per_congress_pca.png")
+    plt.savefig(out, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close()
+    print(f"  Saved → {out}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8.  SAGENT / SPIRAL-AND-BLOCK THEMED VISUALIZATIONS
 #     Each visualization is named for a specific metaphor from the Sagent Creed
 #     and "The Spiral and the Block".
 # ─────────────────────────────────────────────────────────────────────────────
