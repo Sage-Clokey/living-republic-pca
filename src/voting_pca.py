@@ -2064,13 +2064,39 @@ def plot_per_congress_pca(
         pc1 = coords_aligned[:, 0]
         pc2 = coords_aligned[:, 1]
 
-        # Scatter by party
+        # ── Unsupervised k-means clustering (k=2, NO party info used) ─────────
+        km = KMeans(n_clusters=2, n_init=20, random_state=42)
+        cluster_ids = km.fit_predict(coords_aligned)
+
+        # Background mesh coloring for cluster regions
+        x_min, x_max = pc1.min() - 0.5, pc1.max() + 0.5
+        y_min, y_max = pc2.min() - 0.5, pc2.max() + 0.5
+        xx, yy = np.meshgrid(
+            np.linspace(x_min, x_max, 220),
+            np.linspace(y_min, y_max, 220),
+        )
+        Z = km.predict(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
+        # Neutral cluster region colors — amber vs teal, low alpha
+        region_colors = np.where(Z == 0, 0.0, 1.0)
+        ax.contourf(xx, yy, region_colors, levels=1,
+                    colors=["#1a2a3a", "#2a1a1a"], alpha=0.55, zorder=1)
+        ax.contour(xx, yy, region_colors, levels=1,
+                   colors=["#00ffaa"], linewidths=0.7, alpha=0.6, zorder=2)
+
+        # K-means centroids (white X)
+        for cid, cx_c in enumerate(km.cluster_centers_):
+            ax.scatter([cx_c[0]], [cx_c[1]], c="white", s=80, marker="x",
+                       linewidths=1.5, zorder=7, alpha=0.9)
+
+        # ── Scatter points colored by PARTY (not cluster) ─────────────────────
         for party, color in [("Republican","#E81B23"), ("Democrat","#4466ff"), ("Other","#888888")]:
             mask = parties == party
             if mask.sum() == 0: continue
-            ax.scatter(pc1[mask], pc2[mask], c=color, s=12, alpha=0.55, linewidths=0)
+            ax.scatter(pc1[mask], pc2[mask], c=color, s=12, alpha=0.70,
+                       linewidths=0, zorder=3)
 
-        # Centroid markers
+        # Party centroid diamonds
+        rx = ry = dx = dy = None
         if (parties == "Republican").sum() > 0:
             rx, ry = pc1[parties=="Republican"].mean(), pc2[parties=="Republican"].mean()
             ax.scatter([rx], [ry], c="#ff4444", s=120, marker="D", zorder=6,
@@ -2082,13 +2108,26 @@ def plot_per_congress_pca(
                        edgecolors="white", linewidths=0.8)
             d_centroids.append((dx, dy))
 
-        # Centroid gap annotation
-        if (parties=="Republican").sum()>0 and (parties=="Democrat").sum()>0:
+        # Party centroid gap annotation
+        if rx is not None and dx is not None:
             gap = np.sqrt((rx-dx)**2 + (ry-dy)**2)
             ax.plot([rx, dx], [ry, dy], color="#FFD700", lw=1.2, ls="--", alpha=0.6, zorder=5)
             mid_x, mid_y = (rx+dx)/2, (ry+dy)/2
             ax.text(mid_x, mid_y, f"gap={gap:.1f}", ha="center", color="#FFD700",
                     fontsize=7, style="italic")
+
+        # Alignment stat: what fraction of the majority party ended up in one cluster?
+        if len(np.unique(parties)) > 1:
+            # find which cluster is more Republican
+            r_mask = parties == "Republican"
+            if r_mask.sum() > 0:
+                r_cluster = np.bincount(cluster_ids[r_mask]).argmax()
+                r_in_r = (cluster_ids[r_mask] == r_cluster).mean() * 100
+                d_in_d = (cluster_ids[parties=="Democrat"] != r_cluster).mean() * 100 if (parties=="Democrat").sum() > 0 else 0
+                align = (r_in_r + d_in_d) / 2
+                ax.text(0.98, 0.04, f"cluster-party align {align:.0f}%",
+                        transform=ax.transAxes, ha="right", color="#00ffaa",
+                        fontsize=7, alpha=0.85)
 
         yr    = CONGRESS_YEARS[c]
         maj   = MAJORITY_PARTY[c]
@@ -2110,9 +2149,10 @@ def plot_per_congress_pca(
 
     fig.suptitle(
         "Individual PCA — Each Congress Independently  (110th–118th House)\n"
-        "Each panel is its own PCA with no influence from other years. "
-        "Diamond = party centroid. Gold dashes = centroid gap (polarization).",
-        color="white", fontsize=14, y=1.01, fontweight="bold"
+        "Background regions = unsupervised k-means clusters (k=2, no party info). "
+        "Point color = party affiliation (red=R, blue=D). ✕ = cluster centroid. "
+        "Diamond = party centroid. % = how well clusters align with party.",
+        color="white", fontsize=13, y=1.01, fontweight="bold"
     )
     plt.tight_layout()
     out = save_path or (OUT_DIR / "per_congress_pca.png")
